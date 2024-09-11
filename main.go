@@ -43,6 +43,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
     http.HandleFunc("/submit", handler)
+    http.HandleFunc("/Log", Log_recive)
+    http.HandleFunc("/Log_file", Log_ALL_recive)
     fmt.Println("Server is running on port 8080...")
     log.Fatal(http.ListenAndServe(":8080", nil))
 }
