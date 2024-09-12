@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <!--
+        アカウント作成用フォーム
+        chatgptに半分以上作らせたのを含め、改善の余地あり(以外とゴリ押しで作ってる)
+    -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>アカウント作成フォーム</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+        }
+        h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .form-group input[type="submit"] {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        .form-group input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h2>ユーザ作成</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">ユーザーネーム</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div style="color: red;" id="error_message"></div>
+            <div class="form-group">
+                <label for="password">パスワード</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="作成">
+            </div>
+        </form>
+    </div>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // フォームのデフォルトの送信動作を防ぐ
+            
+            // フォームデータの取得
+            const formData = new FormData(this);
+            const data = {};
+            formData.forEach((value, key) => {
+                // パスワードだけハッシュ化
+                if (key === 'password') {
+                    data[key] = CryptoJS.MD5(value).toString();
+                } else {
+                    data[key] = value;
+                }
+            });
+
+            // JSONデータに変換
+            const jsonData = JSON.stringify(data);
+            console.log(jsonData)
+
+            // フェッチでPOSTリクエストを送信
+            fetch('/Create_User_SYS', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: jsonData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                if(data.result == 'succsess'){
+                    window.location.href = "/Create-succsess"
+                }else{
+                    alert('登録に失敗しました。');
+                    document.getElementById("error_message").innerText = "ユーザーネームがダブっているので変更してください"
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                console.error('エラーが発生しました:', error);
+                alert('登録中にエラーが発生しました。');
+            });
+        });
+    </script>
+</body>
+</html>

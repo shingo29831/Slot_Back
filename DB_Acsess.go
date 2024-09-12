@@ -26,6 +26,7 @@ func NewDatabase(dsn string) (*Database, error) {
     return &Database{DB: db}, nil
 }
 
+
 // Database構造体に属するクエリメソッド
 func (db *Database) Query(query string, args ...interface{}) ([]map[string]interface{}, error) {
     rows, err := db.DB.Query(query, args...)
