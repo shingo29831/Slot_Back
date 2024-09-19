@@ -1,9 +1,7 @@
--- メモ用:現在までのMYSQLの設定をここに書き連ねてあります。全部Mysqlに打ち込めば、動くはずです
-
-Create user 'logsystem'@'localhost' Identified by 'logsyspassword';
-Create Database log_server;
+Create user if not exists 'logsystem'@'localhost' Identified by 'logsyspassword';
+Create Database if not exists log_server;
 use log_server
-create table Log_table(
+create table if not exists Log_table(
     time DATETIME,
     level Integer,
     location varchar(30),
@@ -13,10 +11,10 @@ Grant All Privileges on log_server.* to 'logsystem'@'localhost';
 FLUSH PRIVILEGES;
 
 
-create user 'account_system'@'localhost' identified by 'acpassword';
-Create database account_server;
+create user if not exists 'account_system'@'localhost' identified by 'acpassword';
+Create database if not exists account_server;
 use account_server;
-create table Account_table(
+create table if not exists Account_table(
     username varchar(256) Primary key,
     usertype Integer,
     password varchar(256),
