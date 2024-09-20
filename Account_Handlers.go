@@ -3,10 +3,14 @@ package main
 import (
 	"crypto/md5"
 	"crypto/rand"
+	_ "database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 /**
@@ -21,7 +25,7 @@ import (
 
 //外部接続潰し、正しい端末以外からの通信を破棄する
 var Authentication_Key = "aaa"
-var ACCOUNT_TABLE = "account_system:acpassword@(%)/account_server"
+var ACCOUNT_TABLE = "account_system:xM7B)NY-eexsJm@tcp(localhost:3306)/account_server"
 
 type USER_JSON struct {
 	Key 	 string `json:"key"`
@@ -36,9 +40,17 @@ type USER_JSON struct {
 //まだ、ログイン、ログアウトはできてないし、ゲスト用も作れてないけど、それは後々
 
 //追記、Dos等への対策が一切ないため、何かはしなければならない
-
+func Account_out(message string, v... any){
+	f, err := os.OpenFile("./web/Account.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+	    panic(err)
+	}
+	fmt.Fprintf(f,message,v...)
+	defer f.Close()
+}
 
 func Create_User_Handle(w http.ResponseWriter, r *http.Request){
+	Account_out("要求\n")
 	if r.Method != "POST"{
         http.Redirect(w, r, "/Create_User", http.StatusSeeOther)
 		return
@@ -49,12 +61,14 @@ func Create_User_Handle(w http.ResponseWriter, r *http.Request){
 	}
 	err := data2json(r, &create_js)
 	if err != nil{
-		http.Error(w, "jsonの形が異なるか、送信されていません",400)
+		http.Error(w, "jsonの形が異なるか、送信されていません",200)
 		return
 	}
 	db, err := NewDatabase(ACCOUNT_TABLE)
 	if err != nil {
-		http.Error(w, "{\"result\":\"Error\",\"message\":\"データベース接続でエラーが発生しました\"}", 500)
+		Account_out("たぶんここ%s",err.Error())
+		w.WriteHeader(200)
+		w.Write([]byte("{\"result\":\"Error\",\"message\":\"データベース接続でエラーが発生しました\"}"))
 		return
 	}
 	//USERにprimary keyを指定しているので、エラーが起きたら、すでにその名前があると認識させ、もう一度と返します
@@ -98,7 +112,7 @@ func Create_guest_user(w http.ResponseWriter, r *http.Request){
 	}
 	if ca_js.Key != Authentication_Key {
 		http.Error(w,"誰だ貴様",400)
-		fmt.Printf("多分攻撃うけてる")
+		fmt.Printf("多分攻撃うけてる\n")
 		return
 	}
 	var answer struct{

@@ -11,7 +11,7 @@ Grant All Privileges on log_server.* to 'logsystem'@'%';
 FLUSH PRIVILEGES;
 
 
-create user if not exists 'account_system'@'%' identified by 'acpassword';
+create user if not exists 'account_system'@'%' identified by 'xM7B)NY-eexsJm';
 Create database if not exists account_server;
 use account_server;
 create table if not exists Account_table(

@@ -88,6 +88,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 //Create_Userのweb用ハンドラ(唯一まともな使い方をする予定です)
 func Create_User_fromt(w http.ResponseWriter, r *http.Request){
+    fmt.Fprintf(os.Stderr,"要求:%s",r.Host)
     f,err := os.Open("./web/Create_User.html")
     if err != nil {
         Error_serve(500,"サーバーエラー",w,r)
@@ -116,6 +117,7 @@ func main() {
     http.HandleFunc("/Create-succsess",func (w http.ResponseWriter, r *http.Request)  {
         fmt.Fprintf(w,"登録が完了しました♡")
     })
+    Account_out("どうして。。。")
     fmt.Println("Server is running on port 8080...")
     log.Fatal(http.ListenAndServe(":8080", nil))
 }

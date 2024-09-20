@@ -1,6 +1,6 @@
 -- メモ用:現在までのMYSQLの設定をここに書き連ねてあります。全部Mysqlに打ち込めば、動くはずです
 
-Create user 'logsystem'@'localhost' Identified by 'logsyspassword';
+Create user 'logsystem'@'%' Identified by 'logsyspassword';
 Create Database log_server;
 use log_server
 create table Log_table(
@@ -9,11 +9,11 @@ create table Log_table(
     location varchar(30),
     message varchar(256)
 );
-Grant All Privileges on log_server.* to 'logsystem'@'localhost';
+Grant All Privileges on log_server.* to 'logsystem'@'%';
 FLUSH PRIVILEGES;
 
 
-create user 'account_system'@'localhost' identified by 'acpassword';
+create user 'account_system'@'%' identified by 'acpassword';
 Create database account_server;
 use account_server;
 create table Account_table(
@@ -23,5 +23,5 @@ create table Account_table(
     money Integer,
     TOKEN varchar(256)
 );
-Grant All Privileges on account_server.* to 'account_system'@'localhost';
+Grant All Privileges on account_server.* to 'account_system'@'%';
 FLUSH PRIVILEGES;
