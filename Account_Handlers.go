@@ -21,7 +21,7 @@ import (
 
 //外部接続潰し、正しい端末以外からの通信を破棄する
 var Authentication_Key = "aaa"
-var ACCOUNT_TABLE = "account_system:acpassword@(localhost)/account_server"
+var ACCOUNT_TABLE = "account_system:acpassword@(%)/account_server"
 
 type USER_JSON struct {
 	Key 	 string `json:"key"`
@@ -54,7 +54,7 @@ func Create_User_Handle(w http.ResponseWriter, r *http.Request){
 	}
 	db, err := NewDatabase(ACCOUNT_TABLE)
 	if err != nil {
-		http.Error(w, "データベースに接続できませんでした", 500)
+		http.Error(w, "{\"result\":\"Error\",\"message\":\"データベース接続でエラーが発生しました\"}", 500)
 		return
 	}
 	//USERにprimary keyを指定しているので、エラーが起きたら、すでにその名前があると認識させ、もう一度と返します
@@ -63,7 +63,7 @@ func Create_User_Handle(w http.ResponseWriter, r *http.Request){
 	_ ,err = db.Exec("Insert into Account_table(username, usertype,password,money,TOKEN) values (?,1,?,0, NULL)",create_js.Username,create_js.Password)
 	if err != nil{
 		w.WriteHeader(200)
-		w.Write([]byte("{\"result\":\"username_already_exists\"}"))
+		w.Write([]byte("{\"result\":\"username_already_exists\",\"message\":\"ユーザーネームがダブっているので変更してください\"}"))
 		return
 	}
 	w.WriteHeader(200)

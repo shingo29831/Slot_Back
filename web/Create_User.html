@@ -108,7 +108,7 @@
                     window.location.href = "/Create-succsess"
                 }else{
                     alert('登録に失敗しました。');
-                    document.getElementById("error_message").innerText = "ユーザーネームがダブっているので変更してください"
+                    document.getElementById("error_message").innerText = data.message
                 }
             })
             .catch((error) => {

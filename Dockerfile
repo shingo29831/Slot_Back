@@ -1,29 +1,40 @@
 # ベースイメージとしてGoを使用
-FROM golang:1.20 as builder
+FROM ubuntu:22.04 AS builder
 
 # 作業ディレクトリを作成
 WORKDIR /app
 
-# 同ディレクトリのファイルをコンテナにコピー
-COPY . .
+RUN apt-get update && \
+        apt-get install wget -y
 
-# 依存関係のインストールとコンパイル
-RUN go mod tidy
-RUN go build -o main .
+RUN wget https://go.dev/dl/go1.23.1.linux-amd64.tar.gz  && \
+        tar -C /usr/local -xzf go1.23.1.linux-amd64.tar.gz
 
-# マルチステージビルドで軽量化
-FROM golang:1.20
+RUN export PATH=$PATH:/usr/local/go/bin
 
-# MySQLクライアントのインストール（必要であれば）
-RUN apt-get update && apt-get install -y default-mysql-client
+# 必要なファイルをコンテナにコピー
+COPY . /app
+
+RUN rm -r go.mod go.sum
+
+RUN /usr/local/go/bin/go mod init app && /usr/local/go/bin/go mod tidy 
+
+# 静的リンクでGoバイナリをビルド
+RUN /usr/local/go/bin/go build -o main .
+
+# 最小限のAlpineイメージを使用してコンテナサイズを削減
+FROM ubuntu:22.04
 
 # 作業ディレクトリを作成
 WORKDIR /app
 
-# ビルド済みのバイナリをコピー
-COPY ./web ./web
+# ビルド済みバイナリとwebディレクトリをコピー
 COPY --from=builder /app/main /app/main
-COPY --from=builder /app/config /app/config
+COPY --from=builder /app/web /app/web
+
+# 実行権限を付与
+RUN chmod +x /app/main
 
 # アプリケーションを起動
 CMD ["./main"]
+

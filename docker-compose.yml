@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   go-app:
     build: .
@@ -8,11 +6,6 @@ services:
       - .:/app
     depends_on:
       - mysql
-    environment:
-      - MYSQL_HOST=mysql
-      - MYSQL_USER=user1
-      - MYSQL_PASSWORD=password1
-      - MYSQL_DB=db1
     ports:
       - "8080:8080"
     networks:

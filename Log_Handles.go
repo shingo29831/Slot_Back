@@ -54,7 +54,7 @@ func Log_ALL_recive(w http.ResponseWriter, r *http.Request){
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
-		db, err:= NewDatabase(/*仮*/"logsystem:logsyspassword@(localhost)/log_server")
+		db, err:= NewDatabase(/*仮*/"logsystem:logsyspassword@(%)/log_server")
 		if err != nil{
 			log.Fatal(err)
 			wg.Done()
@@ -93,7 +93,7 @@ func Log_recive(w http.ResponseWriter, r *http.Request) {
 	wg.Add(1)
 	go func ()  {
 		
-		db, err:= NewDatabase("logsystem:logsyspassword@(localhost)/log_server")
+		db, err:= NewDatabase("logsystem:logsyspassword@(%)/log_server")
 		if err != nil{
 			log.Fatal(err)
 			wg.Done()

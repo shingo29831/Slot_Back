@@ -1,0 +1,29 @@
+curl -X POST http://localhost:8080/Log_file \
+-H "Content-Type: application/json" \
+-d '{
+    "Logs": [
+        {
+            "Level": 1,
+            "location": "Server1",
+            "Message": "First log message"
+        },
+        {
+            "Level": 2,
+            "location": "Server2",
+            "Message": "Second log message"
+        },
+        {
+            "Level": 3,
+            "location": "Server3",
+            "Message": "Third log message"
+        }
+    ]
+}'
+
+curl -X POST http://localhost:8080/Log \
+-H "Content-Type: application/json" \
+-d '{
+    "Level": 1,
+    "location": "Server1",
+    "Message": "Single log message"
+}'

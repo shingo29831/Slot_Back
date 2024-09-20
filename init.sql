@@ -1,4 +1,4 @@
-Create user if not exists 'logsystem'@'localhost' Identified by 'logsyspassword';
+Create user if not exists 'logsystem'@'%' Identified by 'logsyspassword';
 Create Database if not exists log_server;
 use log_server
 create table if not exists Log_table(
@@ -7,11 +7,11 @@ create table if not exists Log_table(
     location varchar(30),
     message varchar(256)
 );
-Grant All Privileges on log_server.* to 'logsystem'@'localhost';
+Grant All Privileges on log_server.* to 'logsystem'@'%';
 FLUSH PRIVILEGES;
 
 
-create user if not exists 'account_system'@'localhost' identified by 'acpassword';
+create user if not exists 'account_system'@'%' identified by 'acpassword';
 Create database if not exists account_server;
 use account_server;
 create table if not exists Account_table(
@@ -21,5 +21,5 @@ create table if not exists Account_table(
     money Integer,
     TOKEN varchar(256)
 );
-Grant All Privileges on account_server.* to 'account_system'@'localhost';
+Grant All Privileges on account_server.* to 'account_system'@'%';
 FLUSH PRIVILEGES;
