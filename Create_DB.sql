@@ -21,6 +21,7 @@ create table Account_table(
     usertype Integer,
     password varchar(256),
     money Integer,
+    table varchar(32),
     TOKEN varchar(256)
 );
 Grant All Privileges on account_server.* to 'account_system'@'%';

@@ -79,7 +79,14 @@
             
             // フォームデータの取得
             const formData = new FormData(this);
-            const data = {};
+            const data = {
+                password : "",
+                username : "",
+                key:"",
+                table:"",
+	            token:"",
+	            money:0
+            };
             formData.forEach((value, key) => {
                 // パスワードだけハッシュ化
                 if (key === 'password') {

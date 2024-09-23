@@ -113,11 +113,12 @@ func main() {
     http.HandleFunc("/Create_guest_user", Create_guest_user)
     http.HandleFunc("/User_Login", User_Login)
     http.HandleFunc("/User_Logout", User_Logout)
+    http.HandleFunc("/update_money", UPDATE_USER_MONEY)
+    http.HandleFunc("/get_user_money", GET_USER_MONEY)
     //適当に作った登録完了フォーム（流石に適当がすぎるので、後々治す予定です)
     http.HandleFunc("/Create-succsess",func (w http.ResponseWriter, r *http.Request)  {
         fmt.Fprintf(w,"登録が完了しました♡")
     })
-    Account_out("どうして。。。")
     fmt.Println("Server is running on port 8080...")
     log.Fatal(http.ListenAndServe(":8080", nil))
 }
