@@ -1,12 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
 	"time"
-)
 
+    _ "database/sql"
+    _ "github.com/go-sql-driver/mysql"
+)
 
 //ここからログ鯖関連
 //Log一つに対しての構造体
@@ -14,13 +17,13 @@ import (
 //locationがその台
 //messageが本文
 type send_logs struct {
-	Level   int    `json:"Level"`
+	Level   int    `json:"level"`
 	Location string`json:"location"`	
-	Message string `json:"Message"`
+	Message string `json:"message"`
 }
 //送るJSON本体
 type send_logs_file struct{
-	Logs []send_logs `json:"Logs"`
+	Logs []send_logs `json:"logs"`
 }
 //Logの重大度をstringに変換するメゾット
 //func level_int2str(lv int)string{
@@ -54,9 +57,9 @@ func Log_ALL_recive(w http.ResponseWriter, r *http.Request){
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
-		db, err:= NewDatabase(/*仮*/"logsystem:logsyspassword@(localhost)/log_server")
+		db, err:= NewDatabase(/*仮*/"logsystem:logsyspassword@tcp(localhost:3306)/log_server")
 		if err != nil{
-			log.Fatal(err)
+			fmt.Printf("Error:%s\n",err)
 			wg.Done()
 			return
 		}
@@ -93,9 +96,9 @@ func Log_recive(w http.ResponseWriter, r *http.Request) {
 	wg.Add(1)
 	go func ()  {
 		
-		db, err:= NewDatabase("logsystem:logsyspassword@(localhost)/log_server")
+		db, err:= NewDatabase("logsystem:logsyspassword@tcp(localhost:3306)/log_server")
 		if err != nil{
-			log.Fatal(err)
+			fmt.Printf("Error:%s\n",err)
 			wg.Done()
 			return
 		}

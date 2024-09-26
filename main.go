@@ -7,11 +7,38 @@ import (
 	"log"
 	"net/http"
 	"os"
+    "database/sql"
+    _ "github.com/go-sql-driver/mysql"
 )
+
+
+// Databaseの初期化メソッド（コンストラクタ風）
+func NewDatabase(dsn string) (*sql.DB, error) {
+    db, err := sql.Open("mysql", dsn)
+    if err != nil {
+        return nil, err
+    }
+
+    // 接続テスト
+    err = db.Ping()
+    if err != nil {
+        return nil, err
+    }
+
+    return  db, nil
+}
 
 //エラーレスポンスを返すとき用のメゾット
 func Error_serve(num int, message string,w http.ResponseWriter, r *http.Request){
 	http.Error(w, message, num)
+}
+
+func append_byte(b... []byte)([]byte){
+    ans := make([]byte,1024)
+    for _, v := range b {
+        ans = append(ans, v...)
+    }
+    return ans
 }
 
 func data2json(r *http.Request, v any)(error){
@@ -61,6 +88,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 //Create_Userのweb用ハンドラ(唯一まともな使い方をする予定です)
 func Create_User_fromt(w http.ResponseWriter, r *http.Request){
+    fmt.Fprintf(os.Stderr,"要求:%s",r.Host)
     f,err := os.Open("./web/Create_User.html")
     if err != nil {
         Error_serve(500,"サーバーエラー",w,r)
@@ -82,6 +110,11 @@ func main() {
     http.HandleFunc("/Log_file", Log_ALL_recive)
     http.HandleFunc("/Create_User_SYS",Create_User_Handle)
     http.HandleFunc("/Create_User",Create_User_fromt)
+    http.HandleFunc("/Create_guest_user", Create_guest_user)
+    http.HandleFunc("/User_Login", User_Login)
+    http.HandleFunc("/User_Logout", User_Logout)
+    http.HandleFunc("/update_money", UPDATE_USER_MONEY)
+    http.HandleFunc("/get_user_money", GET_USER_MONEY)
     //適当に作った登録完了フォーム（流石に適当がすぎるので、後々治す予定です)
     http.HandleFunc("/Create-succsess",func (w http.ResponseWriter, r *http.Request)  {
         fmt.Fprintf(w,"登録が完了しました♡")

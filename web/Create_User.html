@@ -79,7 +79,14 @@
             
             // フォームデータの取得
             const formData = new FormData(this);
-            const data = {};
+            const data = {
+                password : "",
+                username : "",
+                key:"",
+                table:"",
+	            token:"",
+	            money:0
+            };
             formData.forEach((value, key) => {
                 // パスワードだけハッシュ化
                 if (key === 'password') {
@@ -108,13 +115,13 @@
                     window.location.href = "/Create-succsess"
                 }else{
                     alert('登録に失敗しました。');
-                    document.getElementById("error_message").innerText = "ユーザーネームがダブっているので変更してください"
+                    document.getElementById("error_message").innerText = data.message
                 }
             })
             .catch((error) => {
                 console.error('Error:', error);
                 console.error('エラーが発生しました:', error);
-                alert('登録中にエラーが発生しました。');
+                alert('登録中にエラーが発生しました。' + error);
             });
         });
     </script>
