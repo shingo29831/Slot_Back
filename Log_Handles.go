@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"sync"
 	"time"
-
+	"encoding/json"
     _ "database/sql"
     _ "github.com/go-sql-driver/mysql"
 )
@@ -25,6 +25,14 @@ type send_logs struct {
 type send_logs_file struct{
 	Logs []send_logs `json:"logs"`
 }
+
+type Log struct {
+    Time     string `json:"time"`
+    Level    int    `json:"level"`
+    Location string `json:"location"`
+    Message  string `json:"message"`
+}
+
 //Logの重大度をstringに変換するメゾット
 //func level_int2str(lv int)string{
 //	switch lv {
@@ -39,17 +47,61 @@ type send_logs_file struct{
 
 //複数ログ用ハンドル,主にこいつを利用してほしい
 
+func Log_accsess(w http.ResponseWriter, r *http.Request){
+	query := `
+		SELECT time, level, location, message FROM Log_table ORDER BY time DESC LIMIT 100
+	`
+	db, err := NewDatabase("logsystem:logsyspassword@tcp(localhost:3306)/log_server")
+	if err != nil {
+		http.Error(w,"サーバーエラー",500)
+		return
+	}
+	rows, err := db.Query(query)
+    if err != nil {
+        http.Error(w, "データベースからのデータ取得に失敗しました : "+ err.Error(), http.StatusInternalServerError)
+        return
+    }
+    defer rows.Close()
+
+    var logs []Log
+
+    // クエリの結果を読み込んでログ構造体にマッピング
+    for rows.Next() {
+        var logEntry Log
+        var logTime string
+
+        if err := rows.Scan(&logTime, &logEntry.Level, &logEntry.Location, &logEntry.Message); err != nil {
+            http.Error(w, "データの読み込みに失敗しました"+ err.Error(), http.StatusInternalServerError)
+            return
+        }
+		parsedTime, err := time.Parse("2006-01-02 15:04:05", logTime)
+		if err != nil {
+            log.Printf("時間のパースに失敗しました: %v", err)
+            continue
+        }
+        // 時刻をRFC3339形式にフォーマット
+        logEntry.Time = parsedTime.Format(time.RFC3339)
+        logs = append(logs, logEntry)
+    }
+
+    // JSONとして返す
+    w.Header().Set("Content-Type", "application/json")
+    if err := json.NewEncoder(w).Encode(logs); err != nil {
+        http.Error(w, "JSONエンコードに失敗しました", http.StatusInternalServerError)
+    }
+}
+
 func Log_ALL_recive(w http.ResponseWriter, r *http.Request){
     //POSTじゃないなら弾く
 	if r.Method != "POST" {
-		Error_serve(403, "権限がありません\n",w, r)	
+		http.Error(w, "権限がありません\n",http.StatusForbidden)	
 		return
 	}
 	var logs  send_logs_file
     //ボディ読み取り,JSONに変換
 	err := data2json(r, &logs)
 	if err != nil {
-		Error_serve(403, "こっちの定義通り送ってくれ\n",w,r)
+		http.Error(w, "こっちの定義通り送ってくれ\n",400)
 		return
 	}
     //ここ好きポイント
@@ -83,13 +135,13 @@ func Log_ALL_recive(w http.ResponseWriter, r *http.Request){
 func Log_recive(w http.ResponseWriter, r *http.Request) {
 	
 	if r.Method != "POST" {
-		Error_serve(403, "権限がありません\n",w, r)	
+		http.Error(w, "権限がありません\n",http.StatusForbidden)	
 		return
 	}
 	logs := send_logs{}
 	err := data2json(r, &logs)
 	if err != nil {
-		Error_serve(403, "こっちの定義通り送ってくれ\n",w,r)
+		http.Error(w, "こっちの定義通り送ってくれ\n",http.StatusForbidden)
 		return
 	}
 	wg := &sync.WaitGroup{}

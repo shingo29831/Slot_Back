@@ -1,16 +1,17 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
-    "database/sql"
-    _ "github.com/go-sql-driver/mysql"
-)
+	"strings"
 
+	_ "github.com/go-sql-driver/mysql"
+)
 
 // Databaseの初期化メソッド（コンストラクタ風）
 func NewDatabase(dsn string) (*sql.DB, error) {
@@ -28,10 +29,6 @@ func NewDatabase(dsn string) (*sql.DB, error) {
     return  db, nil
 }
 
-//エラーレスポンスを返すとき用のメゾット
-func Error_serve(num int, message string,w http.ResponseWriter, r *http.Request){
-	http.Error(w, message, num)
-}
 
 func append_byte(b... []byte)([]byte){
     ans := make([]byte,1024)
@@ -91,20 +88,46 @@ func Create_User_fromt(w http.ResponseWriter, r *http.Request){
     fmt.Fprintf(os.Stderr,"要求:%s",r.Host)
     f,err := os.Open("./web/Create_User.html")
     if err != nil {
-        Error_serve(500,"サーバーエラー",w,r)
+        http.Error(w,"サーバーエラー",500)
         return
     }
     defer f.Close()
     data, err := io.ReadAll(f)
     if err != nil{
-        Error_serve(500,"サーバーエラー",w,r)
+        http.Error(w,"サーバーエラー",500)
         return
     } 
     w.WriteHeader(200)
     w.Write(data)
 }
 
+func fileaccsess(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodGet || strings.Contains( r.URL.Path, ".."){
+        http.Error(w,"server Error",http.StatusBadRequest)
+        return
+    }
+    file, err := os.Open("./web"+r.URL.Path)
+    if err != nil{
+        http.Error(w,"FileNotFountException <-スペルあってる？", 404)
+        return
+    } 
+    defer file.Close()
+    buf, err := io.ReadAll(file)
+    if err != nil{
+        http.Error(w,"鯖エラー", 500)
+        return
+    } 
+    w.WriteHeader(200)
+    w.Write(buf)
+}
+
 func main() {
+    http.HandleFunc("/script.js" ,fileaccsess)
+    http.HandleFunc("/transactions",pay_root)
+    http.HandleFunc("/submit-transaction",submit_transaction)
+	http.HandleFunc("/login", loginPage)
+	http.HandleFunc("/dashboard", dashboardPage)
+	http.HandleFunc("/logout", logout)
     http.HandleFunc("/submit", handler)
     http.HandleFunc("/Log", Log_recive)
     http.HandleFunc("/Log_file", Log_ALL_recive)
@@ -115,6 +138,7 @@ func main() {
     http.HandleFunc("/User_Logout", User_Logout)
     http.HandleFunc("/update_money", UPDATE_USER_MONEY)
     http.HandleFunc("/get_user_money", GET_USER_MONEY)
+    http.HandleFunc("/api/logs",Log_accsess)
     //適当に作った登録完了フォーム（流石に適当がすぎるので、後々治す予定です)
     http.HandleFunc("/Create-succsess",func (w http.ResponseWriter, r *http.Request)  {
         fmt.Fprintf(w,"登録が完了しました♡")

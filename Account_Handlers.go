@@ -162,7 +162,7 @@ func Create_guest_user(w http.ResponseWriter, r *http.Request){
 		return
 	}
 	answer.Token = MakeRandomStr(255)
-	_ ,err = db.Exec("Insert into Account_table(username, usertype,password,money,table,TOKEN) values (?,2,?,0,?)",answer.Username,answer.Password,answer.Table,answer.Token)
+	_ ,err = db.Exec("Insert into Account_table(username, usertype,password,money,table_id,TOKEN) values (?,2,?,0,?)",answer.Username,answer.Password,answer.Table,answer.Token)
 	if err != nil{
 		resp, err := json.Marshal(Message("username_already_exists","ユーザーが既に存在しています",&ca_js))
 		if err != nil {
@@ -220,7 +220,7 @@ func User_Login(w http.ResponseWriter, r *http.Request){
 		ans.Table = login_user.Table
 		ans.Token = MakeRandomStr(128)
 		ans.Result = "success"
-		_, err = db.Exec("UPDATE Account_table SET TOKEN = ?,table WHERE username = ? AND password = ?", ans.Token, ans.Table,ans.Username, ans.Password)
+		_, err = db.Exec("UPDATE Account_table SET TOKEN = ?,table_id = ? WHERE username = ? AND password = ?", ans.Token, ans.Table,ans.Username, ans.Password)
 		if err != nil {
 			Error_res(err.Error(), &login_user, w)
 			return
@@ -280,7 +280,7 @@ func User_Logout(w http.ResponseWriter, r *http.Request){
 		return
     }
 	if count > 0 {
-		query = "UPDATE Account_table SET token = NULL,table = NULL WHERE username = ? AND password = ? AND TOKEN = ?"
+		query = "UPDATE Account_table SET token = NULL,table_id = NULL WHERE username = ? AND password = ? AND TOKEN = ?"
 		_, err = db.Exec(query, user.Username, password, user.Token)
 		if err != nil {
 			Error_res(fmt.Sprintf("クエリエラー:%s",err.Error()),&user,w)
