@@ -17,8 +17,8 @@ var validPassword = "password"
 
 type pay_struct struct{
 	TableId string `json:"tableId"`
-	DepositAmount int `json:"depositAmount"`
-	WithdrawalAmoun int `json:"withdrawalAmoun"`
+	DepositAmount json.Number `json:"depositAmount"`
+	WithdrawalAmoun json.Number `json:"withdrawalAmoun"`
 }
 
 func loginPage(w http.ResponseWriter, r *http.Request){
@@ -137,13 +137,16 @@ func submit_transaction(w http.ResponseWriter, r *http.Request){
 		Error_res(err.Error(),nil,w)
 		return
 	}
-	db, err := NewDatabase("")
+	db, err := NewDatabase(ACCOUNT_TABLE)
 	if err != nil {
 		Error_res(err.Error(),nil,w)
 		return
 	}
+	with ,_ := req.WithdrawalAmoun.Int64()
+	dep, _  := req.DepositAmount.Int64()
+ 	update_money := dep - with 
 	
-	_ ,err = db.Exec("update Account_table set money = SUM(money, ?) where table = ?",req.WithdrawalAmoun + req.DepositAmount, req.TableId)
+	_ ,err = db.Exec("update Account_table set money = money + ? where table_id = ?",update_money, req.TableId)
 	if err != nil {
 		Error_res(err.Error(),nil,w)
 		return

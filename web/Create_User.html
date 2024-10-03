@@ -111,8 +111,8 @@
             .then(response => response.json())
             .then(data => {
                 console.log('Success:', data);
-                if(data.result == 'succsess'){
-                    window.location.href = "/Create-succsess"
+                if(data.result == 'success'){
+                    window.location.href = "/Create-success"
                 }else{
                     alert('登録に失敗しました。');
                     document.getElementById("error_message").innerText = data.message

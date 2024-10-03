@@ -154,15 +154,15 @@ func Create_guest_user(w http.ResponseWriter, r *http.Request){
 	}
 	var answer user_result
 	answer.Username = string(append_byte([]byte(time.Now().GoString()), []byte(MakeRandomStr(10))))
-	answer.Password = MakeRandomStr(255)
+	answer.Password = MakeRandomStr(128)
 	answer.Table = ca_js.Table
 	db, err := NewDatabase(ACCOUNT_TABLE)
 	if err != nil {
 		Error_res("データベース接続に失敗しました",&ca_js, w)
 		return
 	}
-	answer.Token = MakeRandomStr(255)
-	_ ,err = db.Exec("Insert into Account_table(username, usertype,password,money,table_id,TOKEN) values (?,2,?,0,?)",answer.Username,answer.Password,answer.Table,answer.Token)
+	answer.Token = MakeRandomStr(128)
+	_ ,err = db.Exec("Insert into Account_table(username, usertype,password,money,table_id,TOKEN) values (?,2,?,0,?)",answer.Username,fmt.Sprintf("%x", md5.Sum([]byte(answer.Password))),answer.Table,answer.Token)
 	if err != nil{
 		resp, err := json.Marshal(Message("username_already_exists","ユーザーが既に存在しています",&ca_js))
 		if err != nil {
@@ -220,11 +220,12 @@ func User_Login(w http.ResponseWriter, r *http.Request){
 		ans.Table = login_user.Table
 		ans.Token = MakeRandomStr(128)
 		ans.Result = "success"
-		_, err = db.Exec("UPDATE Account_table SET TOKEN = ?,table_id = ? WHERE username = ? AND password = ?", ans.Token, ans.Table,ans.Username, ans.Password)
+		_ ,err := db.Exec("UPDATE Account_table SET TOKEN = ?,table_id = ? WHERE username = ? AND password = ?", ans.Token, ans.Table,ans.Username, password)
 		if err != nil {
 			Error_res(err.Error(), &login_user, w)
 			return
 		}
+		
 		data,err := json.Marshal(ans)
 		if err != nil{
 			Error_res(err.Error(), &login_user, w)

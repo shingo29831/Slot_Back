@@ -40,6 +40,7 @@ func append_byte(b... []byte)([]byte){
 
 func data2json(r *http.Request, v any)(error){
     body, err := io.ReadAll(r.Body)
+    fmt.Println(string(body))
     if err != nil {
         return err
     }
@@ -140,7 +141,7 @@ func main() {
     http.HandleFunc("/get_user_money", GET_USER_MONEY)
     http.HandleFunc("/api/logs",Log_accsess)
     //適当に作った登録完了フォーム（流石に適当がすぎるので、後々治す予定です)
-    http.HandleFunc("/Create-succsess",func (w http.ResponseWriter, r *http.Request)  {
+    http.HandleFunc("/Create-success",func (w http.ResponseWriter, r *http.Request)  {
         fmt.Fprintf(w,"登録が完了しました♡")
     })
     fmt.Println("Server is running on port 8080...")
