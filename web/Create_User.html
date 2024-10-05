@@ -3,7 +3,7 @@
 <head>
     <!--
         アカウント作成用フォーム
-        chatgptに半分以上作らせたのを含め、改善の余地あり(以外とゴリ押しで作ってる)
+        chatgptに半分以上作らせたのを含め、改善の余地あり(意外とゴリ押しで作ってる)
     -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -111,8 +111,8 @@
             .then(response => response.json())
             .then(data => {
                 console.log('Success:', data);
-                if(data.result == 'succsess'){
-                    window.location.href = "/Create-succsess"
+                if(data.result == 'success'){
+                    window.location.href = "/Create-success"
                 }else{
                     alert('登録に失敗しました。');
                     document.getElementById("error_message").innerText = data.message
