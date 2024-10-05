@@ -30,13 +30,6 @@ func NewDatabase(dsn string) (*sql.DB, error) {
 }
 
 
-func append_byte(b... []byte)([]byte){
-    ans := make([]byte,1024)
-    for _, v := range b {
-        ans = append(ans, v...)
-    }
-    return ans
-}
 
 func data2json(r *http.Request, v any)(error){
     body, err := io.ReadAll(r.Body)
@@ -130,13 +123,13 @@ func main() {
 	http.HandleFunc("/dashboard", dashboardPage)
 	http.HandleFunc("/logout", logout)
     http.HandleFunc("/submit", handler)
-    http.HandleFunc("/Log", Log_recive)
-    http.HandleFunc("/Log_file", Log_ALL_recive)
-    http.HandleFunc("/Create_User_SYS",Create_User_Handle)
-    http.HandleFunc("/Create_User",Create_User_fromt)
-    http.HandleFunc("/Create_guest_user", Create_guest_user)
-    http.HandleFunc("/User_Login", User_Login)
-    http.HandleFunc("/User_Logout", User_Logout)
+    http.HandleFunc("/log", Log_recive)
+    http.HandleFunc("/log_file", Log_ALL_recive)
+    http.HandleFunc("/create_User_SYS",create_User_Handle)
+    http.HandleFunc("/create_User",Create_User_fromt)
+    http.HandleFunc("/create_guest_user", Create_guest_user)
+    http.HandleFunc("/user_Login", User_Login)
+    http.HandleFunc("/user_Logout", User_Logout)
     http.HandleFunc("/update_money", UPDATE_USER_MONEY)
     http.HandleFunc("/get_user_money", GET_USER_MONEY)
     http.HandleFunc("/api/logs",Log_accsess)

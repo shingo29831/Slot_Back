@@ -166,3 +166,31 @@ func Log_recive(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("ALL DONE"))
 	wg.Wait()
 }
+
+func log_print(message string, arg... any){
+	server_log(0,message,arg...)
+}
+
+func error_print(message string, arg... any){
+	server_log(1,message,arg...)
+}
+
+func server_log(level int, message string, arg... any){
+	var log1 Log
+	log1.Message = fmt.Sprintf(message, arg...)
+	log1.Level = level
+	log1.Time = time.Now().Format("2006-01-02T15:04:05Z07:00")
+	log1.Location = "server"
+	db, err:= NewDatabase("logsystem:logsyspassword@tcp(localhost:3306)/log_server")
+	if err != nil{
+		fmt.Printf("Error:%s\n",err)
+		return
+	}
+	//エラー処理を書かなきゃいけない　あとでやる
+	defer db.Close()
+	_, err = db.Exec("insert into Log_table (time,level,location,message) values (?,?,?,?)",log1.Time,log1.Level,log1.Location,log1.Message)
+	if err != nil {
+		log.Fatal(err)	
+	}
+
+}
