@@ -74,7 +74,7 @@ button:hover {
         <h1>入出金フォーム</h1>
         <form id="transactionForm">
             <div class="form-group">
-                <label for="userId">ユーザーID</label>
+                <label for="userId">テーブルID</label>
                 <input type="text" id="userId" name="userId" placeholder="IDを入力してください" required>
             </div>
             <div class="form-group">
@@ -85,6 +85,7 @@ button:hover {
                 <label for="withdrawalAmount">出金額</label>
                 <input type="number" id="withdrawalAmount" name="withdrawalAmount" placeholder="出金額を入力してください" required>
             </div>
+            <div id="error_message"></div>
             <button type="submit">送信</button>
         </form>
     </div>
@@ -115,7 +116,14 @@ button:hover {
             })
             .then(response => response.json())
             .then(data => {
-                // サーバーからのレスポンスを処理
+                if (data.result !== "success"){
+                    alert("登録にエラーが発生しました")
+                    document.getElementById("error_message").innerText="error" + data.message 
+                }else{
+                    alert('完了しました')
+                    window.location.href = "/dashboard"
+                }
+
                 console.log('Success:', data);
             })
             .catch((error) => {

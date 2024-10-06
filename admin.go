@@ -142,6 +142,16 @@ func submit_transaction(w http.ResponseWriter, r *http.Request){
 		Error_res(err.Error(),nil,w)
 		return
 	}
+	var user struct{
+		Username string
+		Token string
+		Table string
+	}
+	err = db.QueryRow("select username, TOKEN, table_id from Account_table where table_id = ?",req.TableId).Scan(&user.Username, &user.Token, &user.Table)
+	if err != nil {
+		Error_res(err.Error(),nil, w)
+		return
+	}
 	with ,_ := req.WithdrawalAmoun.Int64()
 	dep, _  := req.DepositAmount.Int64()
  	update_money := dep - with 
@@ -151,7 +161,8 @@ func submit_transaction(w http.ResponseWriter, r *http.Request){
 		Error_res(err.Error(),nil,w)
 		return
 	}
-	resp, _:= json.Marshal(Message("succsess","ALL DONE",nil))
+	resp, _:= json.Marshal(Message("success","ALL DONE",nil))
+	log_print("入出金 USER:%s, TableID:%s 額:%d", user.Username,req.TableId, update_money)
 	w.WriteHeader(200)
 	w.Write(resp)
 }

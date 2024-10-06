@@ -135,6 +135,7 @@ func create_User_Handle(w http.ResponseWriter, r *http.Request){
 		if err != nil {
 			log.Fatal(err)
 		}
+		error_print("create_user: %s", err.Error())
 		w.WriteHeader(200)
 		w.Write(resp)
 	} else {
@@ -142,6 +143,7 @@ func create_User_Handle(w http.ResponseWriter, r *http.Request){
 		if err != nil {
 			log.Fatal(err)
 		}
+		log_print("Usercreate: %s", create_js.Username)
 		w.WriteHeader(200)
 		w.Write(resp)
 	}
