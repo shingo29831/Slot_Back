@@ -48,9 +48,40 @@ type Log struct {
 //複数ログ用ハンドル,主にこいつを利用してほしい
 
 func Log_accsess(w http.ResponseWriter, r *http.Request){
+	if r.Method != http.MethodPost {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	var filterCondition struct {
+		Location  string    `json:"location"`  // Locationを追加
+		Level     *int      `json:"level"`
+		StartTime time.Time `json:"startTime"`
+		EndTime   time.Time `json:"endTime"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&filterCondition); err != nil{
+		http.Error(w, "Bad request", 400)
+		fmt.Printf("%v\n",err)
+		return
+	}
 	query := `
-		SELECT time, level, location, message FROM Log_table ORDER BY time DESC LIMIT 100
+		SELECT time, level, location, message FROM Log_table WHERE 1=1 
 	`
+	// Locationのフィルタリング
+	if filterCondition.Location != ""{
+		query += fmt.Sprintf(" AND location = '%s'", filterCondition.Location)
+	}
+	// 重要度のフィルタリング
+	if filterCondition.Level != nil  {
+		query += fmt.Sprintf(" AND level = %d", filterCondition.Level)
+	}
+	// 開始日と終了日のフィルタリング
+	if !filterCondition.StartTime.IsZero() {
+		query += fmt.Sprintf(" AND time >= '%s'", filterCondition.StartTime.Format(time.RFC3339))
+	}
+	if !filterCondition.EndTime.IsZero()  {
+		query += fmt.Sprintf(" AND time <= '%s'",filterCondition.EndTime.Format(time.RFC3339))
+	}
+	query += " ORDER BY time DESC LIMIT 100"
 	db, err := NewDatabase("logsystem:logsyspassword@tcp(localhost:3306)/log_server")
 	if err != nil {
 		http.Error(w,"サーバーエラー",500)

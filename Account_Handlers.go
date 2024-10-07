@@ -248,7 +248,8 @@ func User_Login(w http.ResponseWriter, r *http.Request){
 		ans.Table = login_user.Table
 		ans.Token = MakeRandomStr(128)
 		ans.Result = "success"
-		_ ,err := db.Exec("UPDATE Account_table SET TOKEN = ?,table_id = ? WHERE username = ? AND password = ?", ans.Token, ans.Table,ans.Username, password)
+		_ ,err := db.Exec("UPDATE Account_table SET TOKEN = ?,table_id = ? WHERE username = ? AND password = ?",
+				 ans.Token, ans.Table,ans.Username, password)
 		if err != nil {
 			Error_res(err.Error(), &login_user, w)
 			return

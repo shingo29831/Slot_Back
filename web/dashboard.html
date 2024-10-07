@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -73,6 +73,19 @@
         .log-section h2 {
             color: #333;
         }
+
+        .filter-section {
+            margin-bottom: 20px;
+        }
+
+        .filter-section label {
+            margin-right: 10px;
+        }
+
+        .filter-section input, .filter-section select {
+            margin-right: 10px;
+            padding: 5px;
+        }
     </style>
 </head>
 <body>
@@ -87,6 +100,32 @@
         <h1>Dashboard</h1>
         <p>ようこそ、ログ情報が以下に表示されます。</p>
 
+        <!-- フィルタセクション -->
+        <div class="filter-section">
+            <h2>フィルタ条件</h2>
+            
+            <label for="table-id">Location:</label>
+            <input type="text" id="table-id" placeholder="locationを入力">
+            
+            <label for="level">重要度:</label>
+            <select id="level">
+                <option value="all">全て</option>
+                <option value="3">error</option>
+                <option value="2">warning</option>
+                <option value="1">note</option>
+                <option value="0">success</option>
+            </select>
+
+            <label for="start-date">開始日:</label>
+            <input type="date" id="start-date">
+
+            <label for="end-date">終了日:</label>
+            <input type="date" id="end-date">
+
+            <button onclick="applyFilters()">フィルタを適用</button>
+        </div>
+
+        <!-- ログ表示セクション -->
         <div class="log-section">
             <h2>ログ情報</h2>
             <table>
@@ -105,6 +144,81 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded',applyFilters)
+        async function fetchLogsByCondition(condition) {
+            try {
+                console.log(JSON.stringify(condition))
+                const response = await fetch('/api/logs', {
+                    method: 'POST', // POSTリクエストで条件を送信
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(condition) // 条件をJSONに変換して送信
+                });
+                if (!response.ok) {
+                    throw new Error('データの取得に失敗しました');
+                }
+                const logs = await response.json();
+                updateLogTable(logs); // ログを表示
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        function lv_int2str(i){
+        switch (i) {
+            case 0:return "success"
+            case 1:return "note"
+            case 2:return "warning"
+            case 3:return "error"
+            default :return "????"
+        }
+        }
+        function updateLogTable(logs) {
+        const logTable = document.getElementById('log-table-body');
+        logTable.innerHTML = ''; // テーブルをクリア
+        
+        logs.forEach(log => {
+            const row = document.createElement('tr');
+            // 重要度の色分け
+            let levelColor;
+            switch (log.level) {
+                case 3:
+                    levelColor = 'red';
+                    break;
+                case 2:
+                    levelColor = 'orange';
+                    break;
+                default:
+                    levelColor = 'green';
+            }
+            // 各セルを作成してデータを挿入
+            row.innerHTML = `
+                <td style="color:${levelColor}">${lv_int2str(log.level)}</td>
+                <td>${log.location}</td>
+                <td>${log.message}</td>
+                <td>${log.time}</td>
+            `;
+            logTable.appendChild(row);
+        });
+        console.log("all done")
+        }
+        function applyFilters() {
+            const tableId = document.getElementById('table-id').value;
+            const level = document.getElementById('level').value;
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+
+            const condition = {
+                location: tableId ? tableId : null, // TableIDの条件
+                level: level === 'all' ? null : parseInt(level), // 重要度
+                startTime: startDate ? new Date(startDate).toISOString() : null, // 開始日
+                endTime: endDate ? new Date(endDate).toISOString() : null // 終了日
+            };
+
+            fetchLogsByCondition(condition);
+        }
+    </script>
 </body>
 </html>
