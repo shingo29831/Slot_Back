@@ -135,6 +135,7 @@ func create_User_Handle(w http.ResponseWriter, r *http.Request){
 		if err != nil {
 			log.Fatal(err)
 		}
+		error_print("create_user: %s", err.Error())
 		w.WriteHeader(200)
 		w.Write(resp)
 	} else {
@@ -142,6 +143,7 @@ func create_User_Handle(w http.ResponseWriter, r *http.Request){
 		if err != nil {
 			log.Fatal(err)
 		}
+		log_print("Usercreate: %s", create_js.Username)
 		w.WriteHeader(200)
 		w.Write(resp)
 	}
@@ -246,7 +248,8 @@ func User_Login(w http.ResponseWriter, r *http.Request){
 		ans.Table = login_user.Table
 		ans.Token = MakeRandomStr(128)
 		ans.Result = "success"
-		_ ,err := db.Exec("UPDATE Account_table SET TOKEN = ?,table_id = ? WHERE username = ? AND password = ?", ans.Token, ans.Table,ans.Username, password)
+		_ ,err := db.Exec("UPDATE Account_table SET TOKEN = ?,table_id = ? WHERE username = ? AND password = ?",
+				 ans.Token, ans.Table,ans.Username, password)
 		if err != nil {
 			Error_res(err.Error(), &login_user, w)
 			return
