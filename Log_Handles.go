@@ -76,10 +76,10 @@ func Log_accsess(w http.ResponseWriter, r *http.Request){
 	}
 	// 開始日と終了日のフィルタリング
 	if !filterCondition.StartTime.IsZero() {
-		query += fmt.Sprintf(" AND time >= '%s'", filterCondition.StartTime.Format(time.RFC3339))
+		query += fmt.Sprintf(" AND time >= '%s'", filterCondition.StartTime.String())
 	}
 	if !filterCondition.EndTime.IsZero()  {
-		query += fmt.Sprintf(" AND time <= '%s'",filterCondition.EndTime.Format(time.RFC3339))
+		query += fmt.Sprintf(" AND time <= '%s'",filterCondition.EndTime.String())
 	}
 	query += " ORDER BY time DESC LIMIT 100"
 	db, err := NewDatabase("logsystem:logsyspassword@tcp(localhost:3306)/log_server")
@@ -107,8 +107,8 @@ func Log_accsess(w http.ResponseWriter, r *http.Request){
         }
 		parsedTime, err := time.Parse("2006-01-02 15:04:05", logTime)
 		if err != nil {
-            log.Printf("時間のパースに失敗しました: %v", err)
-            continue
+			http.Error(w, "時間のパースに失敗しました", http.StatusInternalServerError)
+    		return
         }
         // 時刻をRFC3339形式にフォーマット
         logEntry.Time = parsedTime.Format(time.RFC3339)
@@ -130,8 +130,7 @@ func Log_ALL_recive(w http.ResponseWriter, r *http.Request){
 	}
 	var logs  send_logs_file
     //ボディ読み取り,JSONに変換
-	err := data2json(r, &logs)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&logs);err != nil {
 		http.Error(w, "こっちの定義通り送ってくれ\n",400)
 		return
 	}
@@ -170,8 +169,7 @@ func Log_recive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	logs := send_logs{}
-	err := data2json(r, &logs)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&logs);err != nil {
 		http.Error(w, "こっちの定義通り送ってくれ\n",http.StatusForbidden)
 		return
 	}
@@ -203,7 +201,7 @@ func log_print(message string, arg... any){
 }
 
 func error_print(message string, arg... any){
-	server_log(1,message,arg...)
+	server_log(2,message,arg...)
 }
 
 func server_log(level int, message string, arg... any){

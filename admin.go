@@ -132,14 +132,14 @@ func submit_transaction(w http.ResponseWriter, r *http.Request){
 		return
 	}
 	var req pay_struct 
-	err := data2json(r, &req)
-	if err != nil{
-		Error_res(err.Error(),nil,w)
+	
+	if err := json.NewDecoder(r.Body).Decode(&req);err != nil{
+		ErrorResponse(err.Error(),nil,w)
 		return
 	}
 	db, err := NewDatabase(ACCOUNT_TABLE)
 	if err != nil {
-		Error_res(err.Error(),nil,w)
+		ErrorResponse(err.Error(),nil,w)
 		return
 	}
 	var user struct{
@@ -149,7 +149,7 @@ func submit_transaction(w http.ResponseWriter, r *http.Request){
 	}
 	err = db.QueryRow("select username, TOKEN, table_id from Account_table where table_id = ?",req.TableId).Scan(&user.Username, &user.Token, &user.Table)
 	if err != nil {
-		Error_res(err.Error(),nil, w)
+		ErrorResponse(err.Error(),nil, w)
 		return
 	}
 	with ,_ := req.WithdrawalAmoun.Int64()
@@ -158,11 +158,12 @@ func submit_transaction(w http.ResponseWriter, r *http.Request){
 	
 	_ ,err = db.Exec("update Account_table set money = money + ? where table_id = ?",update_money, req.TableId)
 	if err != nil {
-		Error_res(err.Error(),nil,w)
+		ErrorResponse(err.Error(),nil,w)
 		return
 	}
-	resp, _:= json.Marshal(Message("success","ALL DONE",nil))
 	log_print("入出金 USER:%s, TableID:%s 額:%d", user.Username,req.TableId, update_money)
-	w.WriteHeader(200)
-	w.Write(resp)
+	w.Header().Set("Content-Type", "application/json")
+	if err = json.NewEncoder(w).Encode(Message("success","ALL DONE",nil)); err != nil{
+		ErrorResponse("error",nil,w)
+	}
 }

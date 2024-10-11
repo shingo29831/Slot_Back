@@ -1,7 +1,7 @@
 package main
 
 import (
-	"crypto/md5"
+	"crypto/sha256"
 	"crypto/rand"
 	"database/sql"
 	"encoding/json"
@@ -25,7 +25,7 @@ import (
 //外部接続潰し、正しい端末以外からの通信を破棄する
 
 
-
+var err error
 var Authentication_Key = "aaa"
 var ACCOUNT_TABLE = "account_system:xM7B)NY-eexsJm@tcp(localhost:3306)/account_server"
 
@@ -48,59 +48,76 @@ type user_result struct {
 	Money 	 int	`json:"money"`
 }
 
-func user_(db *sql.DB, user user_auth)(bool, error){
-	if user.Key != Authentication_Key {
-		return false, fmt.Errorf("テーブル認証に失敗しました")
-	}
-    defer db.Close()
-    query := "SELECT COUNT(*) FROM Account_table WHERE TOKEN = ?"
-    var count int
-    err := db.QueryRow(query, user.Token).Scan(&count)
-    if err != nil {
-		return false, fmt.Errorf("クリエエラー")
+// Authentication check method
+func checkAuthenticationKey(user user_auth) error {
+    if user.Key != Authentication_Key {
+        return fmt.Errorf("認証キーが無効です")
     }
-	if count == 1{
-		return true, nil
-	} else if count == 0{
-		return false, nil
-	}else {
-		return false, fmt.Errorf("認証エラー")
-	}
+    return nil
 }
 
-func Message(result, message string,user *user_auth)user_result{
-	fmt.Printf("%s: %s\n",result,message)
-	if user == nil{
-		return user_result{
-			Result: result,
-			Message:message,
-			Username: "",
-			Password: "",
-			Token: "",
-			Table: "",
-			Money: 0,
-		}
-	}
-	return user_result{
-		Result: result,
-		Message:message,
-		Username: user.Username,
-		Password: user.Password,
-		Token: user.Token,
-		Table: user.Table,
-		Money: user.Money,
-	}
+// Query user token in DB method
+func checkUserToken(db *sql.DB, user user_auth) (bool, error) {
+    query := `
+		SELECT COUNT(*) FROM Account_table WHERE TOKEN = ? AND username = ? AND password = ?
+	`    
+	var count int
+    err := db.QueryRow(query, user.Token, user.Username,
+				fmt.Sprintf("%x", sha256.Sum256([]byte(user.Password)))).Scan(&count)
+    if err != nil {
+        return false, fmt.Errorf("クエリエラー")
+    }
+    return count == 1, nil
 }
 
-func Error_res(message string, user *user_auth, w http.ResponseWriter){
-	resp, err:= json.Marshal(Message("Error", message, user))
-	if err != nil{
-		log.Fatal(err)
-	}
-	w.WriteHeader(200)
-	w.Write(resp)
+// Create a unified message response
+func Message(result, message string, user *user_auth) user_result {
+    fmt.Printf("%s: %s\n", result, message)
+    if user == nil {
+        return user_result{
+            Result:   result,
+            Message:  message,
+            Username: "",
+            Password: "",
+            Token:    "",
+            Table:    "",
+            Money:    0,
+        }
+    }
+    return user_result{
+        Result:   result,
+        Message:  message,
+        Username: user.Username,
+        Password: user.Password,
+        Token:    user.Token,
+        Table:    user.Table,
+        Money:    user.Money,
+    }
+}
+
+// Unified error response
+func ErrorResponse(message string, user *user_auth, w http.ResponseWriter) {
+    resp, err := json.Marshal(Message("Error", message, user))
+    if err != nil {
+        log.Fatal(err)
+    }
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusBadRequest)
+    w.Write(resp)
+
 	error_print(message)
 }
+
+// User authentication process refactored
+func userAuthentication(db *sql.DB, user user_auth) (bool, error) {
+    if err := checkAuthenticationKey(user); err != nil {
+        return false, err
+    }
+
+    // Check if token is valid
+    return checkUserToken(db, user)
+}
+
 
 //アカウント登録（サーバー方面）　完成
 //とりあえずだけど、Webから情報を受け取って、アカウントを作成するだけ
@@ -114,7 +131,7 @@ func create_User_Handle(w http.ResponseWriter, r *http.Request){
 		return
 	}
 	var create_js user_auth
-	err := data2json(r, &create_js)
+	err := json.NewDecoder(r.Body).Decode(&create_js)
 	if err != nil{
 		http.Error(w, "jsonの形が異なるか、送信されていません",200)
 		error_print("jsonえらー")
@@ -122,14 +139,15 @@ func create_User_Handle(w http.ResponseWriter, r *http.Request){
 	}
 	db, err := NewDatabase(ACCOUNT_TABLE)
 	if err != nil {
-		Error_res("データベース接続でエラーが発生しました",nil,w)
+		ErrorResponse("データベース接続でエラーが発生しました",nil,w)
 		error_print("DBエラー")
 		return
 	}
+	hashPassword := fmt.Sprintf("%x",sha256.Sum256([]byte(create_js.Password)))
 	//USERにprimary keyを指定しているので、エラーが起きたら、すでにその名前があると認識させ、もう一度と返します
 	//ここバグの温床になる気がするで、元気があったら改善する
 	
-	_ ,err = db.Exec("Insert into Account_table(username, usertype,password,money,TOKEN) values (?,1,?,0, NULL)",create_js.Username,create_js.Password)
+	_ ,err = db.Exec("Insert into Account_table(username, usertype,password,money,TOKEN) values (?,1,?,0, NULL)",create_js.Username,hashPassword)
 	if err != nil{
 		resp, err := json.Marshal(Message("username_already_exists","ユーザーネームが既に存在しています",&create_js))
 		if err != nil {
@@ -169,13 +187,13 @@ func Create_guest_user(w http.ResponseWriter, r *http.Request){
 	}
 	//ゲストログインするのがうちかを認証する
 	var ca_js user_auth
-	err := data2json(r, &ca_js)
+	err := json.NewDecoder(r.Body).Decode(&ca_js)
 	if err != nil{
-		Error_res(err.Error(),nil,w)
+		ErrorResponse(err.Error(),nil,w)
 		return
 	}
 	if ca_js.Key != Authentication_Key {
-		Error_res("テーブル認証に失敗しました",&ca_js,w)
+		ErrorResponse("テーブル認証に失敗しました",&ca_js,w)
 		return
 	}
 	var answer user_result
@@ -184,11 +202,11 @@ func Create_guest_user(w http.ResponseWriter, r *http.Request){
 	answer.Table = ca_js.Table
 	db, err := NewDatabase(ACCOUNT_TABLE)
 	if err != nil {
-		Error_res("データベース接続に失敗しました",&ca_js, w)
+		ErrorResponse("データベース接続に失敗しました",&ca_js, w)
 		return
 	}
 	answer.Token = MakeRandomStr(128)
-	_ ,err = db.Exec("Insert into Account_table(username, usertype,password,money,table_id,TOKEN) values (?,2,?,0,?,?)",answer.Username,fmt.Sprintf("%x", md5.Sum([]byte(answer.Password))),answer.Table,answer.Token)
+	_ ,err = db.Exec("Insert into Account_table(username, usertype,password,money,table_id,TOKEN) values (?,2,?,0,?,?)",answer.Username,fmt.Sprintf("%x", sha256.Sum256([]byte(answer.Password))),answer.Table,answer.Token)
 	if err != nil{
 		fmt.Println(err)
 		resp, err := json.Marshal(Message("username_already_exists","ユーザーが既に存在しています",&ca_js))
@@ -220,25 +238,25 @@ func User_Login(w http.ResponseWriter, r *http.Request){
 		return
 	}
 	var login_user user_auth
-	if err := data2json(r, &login_user); err != nil{
-		Error_res(err.Error(),nil,w)
+	if err = json.NewDecoder(r.Body).Decode(&login_user); err != nil{
+		ErrorResponse(err.Error(),nil,w)
 		return
 	}
-	if login_user.Key != Authentication_Key {
-		Error_res("データベース接続に失敗しました",&login_user, w)
+	if err = checkAuthenticationKey(login_user); err != nil {
+		ErrorResponse("データベース接続に失敗しました",&login_user, w)
 		return
 	}
-	password := fmt.Sprintf("%x", md5.Sum([]byte(login_user.Password)))
+	password := fmt.Sprintf("%x", sha256.Sum256([]byte(login_user.Password)))
 	db, err :=  NewDatabase(ACCOUNT_TABLE)
     if err != nil {
-		Error_res(err.Error(), &login_user,w)
+		ErrorResponse(err.Error(), &login_user,w)
     }
     defer db.Close()
     query := "SELECT COUNT(*) FROM Account_table WHERE username = ? AND password = ?"
     var count int
     err = db.QueryRow(query, login_user.Username, password).Scan(&count)
     if err != nil {
-		Error_res(err.Error(),&login_user, w)
+		ErrorResponse(err.Error(),&login_user, w)
 		return
     }
 	if count == 1 {
@@ -251,13 +269,13 @@ func User_Login(w http.ResponseWriter, r *http.Request){
 		_ ,err := db.Exec("UPDATE Account_table SET TOKEN = ?,table_id = ? WHERE username = ? AND password = ?",
 				 ans.Token, ans.Table,ans.Username, password)
 		if err != nil {
-			Error_res(err.Error(), &login_user, w)
+			ErrorResponse(err.Error(), &login_user, w)
 			return
 		}
 		
 		data,err := json.Marshal(ans)
 		if err != nil{
-			Error_res(err.Error(), &login_user, w)
+			ErrorResponse(err.Error(), &login_user, w)
 			return
 		}
 		log_print("ユーザーログイン ID:%s, TABLE:%s", ans.Username, ans.Table)
@@ -289,115 +307,88 @@ func User_Logout(w http.ResponseWriter, r *http.Request){
 		return
 	}
 	var user user_auth
-	if err := data2json(r, &user); err != nil{
-		Error_res(err.Error(),nil,w)
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil{
+		ErrorResponse(err.Error(),nil,w)
 		return
 	}
 	db, err := NewDatabase(ACCOUNT_TABLE)
 	if err != nil {
-		Error_res(err.Error(), nil, w)
+		ErrorResponse(err.Error(), nil, w)
 		return
 	}
 
-	if tmp, err := user_(db, user); tmp || err == nil {
-		password := fmt.Sprintf("%x", md5.Sum([]byte(user.Password)))
+	if tmp, err := userAuthentication(db, user); tmp && err == nil {
+		fmt.Println(tmp)
 		query := "UPDATE Account_table SET token = NULL,table_id = NULL WHERE TOKEN = ?"
-		_, err := db.Exec(query, user.Username, password, user.Token)
+		_, err := db.Exec(query, user.Token)
 		if err != nil {
-			Error_res(fmt.Sprintf("クエリエラー:%s",err.Error()),&user,w)
+			ErrorResponse(fmt.Sprintf("クエリエラー:%s",err.Error()),&user,w)
 			return
 		}
-		resp, err := json.Marshal(Message("success","ログアウトに成功しました",&user))
-		if err != nil {
-			log.Fatal(err)
-		}
 		log_print("ユーザーログアウト ID:%s, TABLE:%s", user.Username, user.Table)
-		w.WriteHeader(200)
-		w.Write(resp)
-	}else{
-		Error_res("認証エラーが発生しました、管理者に教えてください",&user,w)
-	}
-}
-
-func get_user_money(user *user_auth)(user_result){
-	db, err := NewDatabase(ACCOUNT_TABLE)
-	if err != nil{
-		return Message("Error",err.Error(),nil)
-	}
-	password := fmt.Sprintf("%x", md5.Sum([]byte(user.Password)))
-    query := "SELECT COUNT(*) FROM Account_table WHERE username = ? AND password = ? AND TOKEN = ?"
-    var count int
-    err = db.QueryRow(query, user.Username, password, user.Token).Scan(&count)
-	if err != nil {
-		return Message("Error", "クリエでエラーが発生しました",user)
-	}
-	if count == 1{
-		var money int
-		query := "select money from Account_table WHERE username = ? AND password = ? AND TOKEN = ?"
-		err = db.QueryRow(query, user.Username, password, user.Token).Scan(&money)
-		if err != nil {
-			return Message("Error", "クリエでエラーが発生しました",user)
-		}
-		user.Money = money
-	}else{
-		return Message("Error", "認証でエラーが発生しました",user)
-	}
-	return Message("success", "完了",user)
-}
-
-func update_user_money(user * user_auth)(user_result){
-	db, err := NewDatabase(ACCOUNT_TABLE)
-	if err != nil{
-		return Message("Error",err.Error(),nil)
-	}
-	password := fmt.Sprintf("%x", md5.Sum([]byte(user.Password)))
-    query := "SELECT COUNT(*) FROM Account_table WHERE username = ? AND password = ? AND TOKEN = ?"
-    var count int
-    err = db.QueryRow(query, user.Username, password, user.Token).Scan(&count)
-	if err != nil {
-		return Message("Error", "クリエでエラーが発生しました",user)
-	}
-	if count == 1{
-		query := "update Account_table set money = ?  WHERE username = ? AND password = ? AND TOKEN = ?"
-		_ ,err = db.Exec(query, user.Money ,user.Username, password, user.Token)
-		if err != nil {
-			return Message("Error", "クリエでエラーが発生しました",user)
+		if err = json.NewEncoder(w).Encode(Message("success","ログアウトに成功しました", &user)); err != nil{
+			http.Error(w,"InternalServerError",http.StatusInternalServerError)
 		}
 	}else{
-		return Message("Error", "認証でエラーが発生しました",user)
+		ErrorResponse("認証エラーが発生しました、管理者に教えてください",&user,w)
 	}
-	return Message("success", "完了",user)
 }
 
-func GET_SET_MONEY(w http.ResponseWriter, r *http.Request, userres func(*user_auth)(user_result)){
+
+
+
+
+func GET_SET_MONEY(w http.ResponseWriter, r *http.Request, userres func(*user_auth, *sql.DB)(user_result)){
 	if r.Method != "POST"{
         http.Redirect(w, r, "/create_User", http.StatusSeeOther)
 		return
 	}
 	var user user_auth
-	if err := data2json(r, &user); err != nil{
-		Error_res(err.Error(),nil,w)
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil{
+		ErrorResponse(err.Error(),nil,w)
 		return
 	}
-	if user.Key != Authentication_Key {
-		Error_res("データベース接続に失敗しました",&user, w)
+	db, err := NewDatabase(ACCOUNT_TABLE)
+	if err != nil{
+		ErrorResponse(err.Error(), nil, w)
 		return
 	}
-	resp, err := json.Marshal(userres(&user))
-	if err != nil {
-		log.Fatal(err)
+	defer db.Close()
+
+	if tmp, err := userAuthentication(db, user); !tmp || err != nil{
+		ErrorResponse("認証失敗",nil, w)
+		return
+	} 
+	w.Header().Set("Content-Type", "application/json")
+	if err = json.NewEncoder(w).Encode(userres(&user,db)); err != nil{
+		http.Error(w, "Server Error", http.StatusInternalServerError)
 	}
-	w.WriteHeader(200)
-	w.Write(resp)
 }
 
 
 //ユーザーの現在金額取得用のプログラム
 func GET_USER_MONEY(w http.ResponseWriter, r *http.Request){
-	GET_SET_MONEY(w,r,get_user_money)
+	GET_SET_MONEY(w,r,func (user *user_auth,db *sql.DB)(user_result){
+		password := fmt.Sprintf("%x", sha256.Sum256([]byte(user.Password)))
+		var money int
+		query := "select money from Account_table WHERE username = ? AND password = ? AND TOKEN = ?"
+		err := db.QueryRow(query, user.Username, password, user.Token).Scan(&money)
+		if err != nil {
+			return Message("Error", "クリエでエラーが発生しました",user)
+		}
+		user.Money = money
+		return Message("success", "完了",user)
+	})
 }
 
 //ユーザーの現在金額更新用のプログラム
 func UPDATE_USER_MONEY(w http.ResponseWriter, r *http.Request){
-	GET_SET_MONEY(w,r,update_user_money)
+	GET_SET_MONEY(w,r,func (user * user_auth, db *sql.DB)(user_result){
+		query := "update Account_table set money = ?  WHERE username = ? AND password = ? AND TOKEN = ?"
+		_ ,err := db.Exec(query, user.Money ,user.Username, fmt.Sprintf("%x",sha256.Sum256([]byte(user.Password))), user.Token)
+		if err != nil {
+			return Message("Error", "クリエでエラーが発生しました",user)
+		}
+		return Message("success", "完了",user)
+	})
 }
