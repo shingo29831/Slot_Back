@@ -88,12 +88,7 @@
 	            money:0
             };
             formData.forEach((value, key) => {
-                // パスワードだけハッシュ化
-                if (key === 'password') {
-                    data[key] = CryptoJS.MD5(value).toString();
-                } else {
-                    data[key] = value;
-                }
+                data[key] = value
             });
 
             // JSONデータに変換

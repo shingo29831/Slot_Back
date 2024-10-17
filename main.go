@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -29,54 +28,6 @@ func NewDatabase(dsn string) (*sql.DB, error) {
     return  db, nil
 }
 
-
-
-func data2json(r *http.Request, v any)(error){
-    body, err := io.ReadAll(r.Body)
-    fmt.Println(string(body))
-    if err != nil {
-        return err
-    }
-    defer r.Body.Close()
-	return json.Unmarshal(body,v)
-}
-
-// JSONの構造体を定義
-type RequestData struct {
-    Name  string `json:"name"`
-    Age   int    `json:"age"`
-    Email string `json:"email"`
-}
-
-func handler(w http.ResponseWriter, r *http.Request) {
-    if r.Header["Content-Type"][0] != "application/json"{
-
-    }
-    // POSTメソッドのみを許可
-    if r.Method != http.MethodPost {
-        http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
-        return
-    }
-
-    // リクエストボディを読み込む
-    body, err := io.ReadAll(r.Body)
-    if err != nil {
-        http.Error(w, "Failed to read request body", http.StatusInternalServerError)
-        return
-    }
-    defer r.Body.Close()
-
-    // JSONをパースして構造体にマッピング
-    var requestData RequestData
-    if err := json.Unmarshal(body, &requestData); err != nil {
-        http.Error(w, "Invalid JSON format", http.StatusBadRequest)
-        return
-    }
-
-    // パースしたデータを使用した処理
-    fmt.Fprintf(w, "Received JSON: %+v\n", requestData)
-}
-
 //Create_Userのweb用ハンドラ(唯一まともな使い方をする予定です)
 func Create_User_fromt(w http.ResponseWriter, r *http.Request){
     fmt.Fprintf(os.Stderr,"要求:%s",r.Host)
@@ -91,7 +42,7 @@ func Create_User_fromt(w http.ResponseWriter, r *http.Request){
         http.Error(w,"サーバーエラー",500)
         return
     } 
-    w.WriteHeader(200)
+    w.WriteHeader(http.StatusOK)
     w.Write(data)
 }
 
@@ -102,7 +53,7 @@ func fileaccsess(w http.ResponseWriter, r *http.Request) {
     }
     file, err := os.Open("./web"+r.URL.Path)
     if err != nil{
-        http.Error(w,"FileNotFountException <-スペルあってる？", 404)
+        http.Error(w,"FileNotFountException", 404)
         return
     } 
     defer file.Close()
@@ -111,20 +62,24 @@ func fileaccsess(w http.ResponseWriter, r *http.Request) {
         http.Error(w,"鯖エラー", 500)
         return
     } 
-    w.WriteHeader(200)
+    w.WriteHeader(http.StatusOK)
     w.Write(buf)
 }
 
 func main() {
+    Logout_user_Array = *initArray()
+    http.HandleFunc("/api/logout_requests", logout_requests)
+    http.HandleFunc("/approve-logout",approve_logout)
+    http.HandleFunc("/styles_css", style_css)
+    http.HandleFunc("/Logout_req", Logout_page)
     http.HandleFunc("/script.js" ,fileaccsess)
     http.HandleFunc("/transactions",pay_root)
     http.HandleFunc("/submit-transaction",submit_transaction)
 	http.HandleFunc("/login", loginPage)
 	http.HandleFunc("/dashboard", dashboardPage)
 	http.HandleFunc("/logout", logout)
-    http.HandleFunc("/submit", handler)
-    http.HandleFunc("/log", Log_recive)
-    http.HandleFunc("/log_file", Log_ALL_recive)
+    http.HandleFunc("/api/add_log", Log_recive)
+    http.HandleFunc("/api/add_log_file", Log_ALL_recive)
     http.HandleFunc("/create_User_SYS",create_User_Handle)
     http.HandleFunc("/create_User",Create_User_fromt)
     http.HandleFunc("/create_guest_user", Create_guest_user)
