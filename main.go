@@ -42,7 +42,7 @@ func Create_User_fromt(w http.ResponseWriter, r *http.Request){
         http.Error(w,"サーバーエラー",500)
         return
     } 
-    w.WriteHeader(200)
+    w.WriteHeader(http.StatusOK)
     w.Write(data)
 }
 
@@ -62,11 +62,16 @@ func fileaccsess(w http.ResponseWriter, r *http.Request) {
         http.Error(w,"鯖エラー", 500)
         return
     } 
-    w.WriteHeader(200)
+    w.WriteHeader(http.StatusOK)
     w.Write(buf)
 }
 
 func main() {
+    Logout_user_Array = *initArray()
+    http.HandleFunc("/api/logout_requests", logout_requests)
+    http.HandleFunc("/approve-logout",approve_logout)
+    http.HandleFunc("/styles_css", style_css)
+    http.HandleFunc("/Logout_req", Logout_page)
     http.HandleFunc("/script.js" ,fileaccsess)
     http.HandleFunc("/transactions",pay_root)
     http.HandleFunc("/submit-transaction",submit_transaction)

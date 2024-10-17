@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ログアウトリクエスト管理</title>
+    <link rel="stylesheet" href="styles_css">
+</head>
+<body>
+    <div class="navbar">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/transactions">入出金機能</a>
+        <a href="/logout" class="logout">ログアウト</a>
+    </div>
+
+    <div class="container">
+        <h1>ログアウトリクエスト一覧</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>テーブル番号</th>
+                    <th>ユーザー名</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="logout-requests">
+                <!-- リクエストがここに挿入される -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function clear_table() {
+            const tbody = document.getElementById('logout-requests');
+            tbody.innerHTML = '';
+            return tbody
+        }
+        async function fetchLogout_requests() {
+            try {
+                const response = await fetch('/api/logout_requests', {
+                    method: 'POST', // POSTリクエストで条件を送信
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (!response.ok) {
+                    throw new Error('データの取得に失敗しました');
+                }
+                const logs = await response.json();
+                if (logs.result  === "Exists"){
+                    displayLogoutRequests(logs.user); 
+                }else clear_table()
+            } catch (error) {
+                console.error(error);
+            }
+        }
+        // テーブルにデータを追加
+        function displayLogoutRequests(logoutRequests) {
+            const tbody = clear_table()
+
+            logoutRequests.forEach(request => {
+                const row = document.createElement('tr');
+                
+                const tableIdCell = document.createElement('td');
+                tableIdCell.textContent = request.tableId;
+                row.appendChild(tableIdCell);
+                
+                const usernameCell = document.createElement('td');
+                usernameCell.textContent = request.username;
+                row.appendChild(usernameCell);
+
+                const actionCell = document.createElement('td');
+                const approveButton = document.createElement('button');
+                approveButton.textContent = '承認';
+                approveButton.onclick = function() {
+                    approveLogout(request.tableId, request.username);
+                };
+                actionCell.appendChild(approveButton);
+                row.appendChild(actionCell);
+
+                tbody.appendChild(row);
+            });
+        }
+
+        // 承認ボタンが押されたときの処理
+        function approveLogout(tableId, username) {
+            const data = { tableId: tableId, username: username };
+
+            fetch('/approve-logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('ログアウトリクエストが承認されました。');
+                    // 承認後、リクエストリストから削除
+                    fetchLogout_requests()
+                } else {
+                    alert('承認に失敗しました。');
+                }
+            })
+            .catch(error => {
+                console.error('エラー:', error);
+                alert('サーバーエラーが発生しました。');
+            });
+        }
+
+        // ページロード時にログアウトリクエストを表示
+        window.onload = fetchLogout_requests;
+    </script>
+</body>
+</html>

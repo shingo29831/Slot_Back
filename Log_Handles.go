@@ -155,7 +155,7 @@ func Log_ALL_recive(w http.ResponseWriter, r *http.Request){
 		}
 		wg.Done()
 	}()
-	w.WriteHeader(200)
+	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("ALL DONE"))
 	wg.Wait()
 }
@@ -191,7 +191,7 @@ func Log_recive(w http.ResponseWriter, r *http.Request) {
 		}
 		wg.Done()
 	}()
-	w.WriteHeader(200)
+	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("ALL DONE"))
 	wg.Wait()
 }

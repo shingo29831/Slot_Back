@@ -133,7 +133,7 @@ func create_User_Handle(w http.ResponseWriter, r *http.Request){
 	var create_js user_auth
 	err := json.NewDecoder(r.Body).Decode(&create_js)
 	if err != nil{
-		http.Error(w, "jsonの形が異なるか、送信されていません",200)
+		http.Error(w, "jsonの形が異なるか、送信されていません",http.StatusOK)
 		error_print("jsonえらー")
 		return
 	}
@@ -154,7 +154,7 @@ func create_User_Handle(w http.ResponseWriter, r *http.Request){
 			log.Fatal(err)
 		}
 		error_print("create_user: %s", err.Error())
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 		w.Write(resp)
 	} else {
 		resp, err := json.Marshal(Message("success","ユーザー登録が完了しました♡",&create_js))
@@ -162,7 +162,7 @@ func create_User_Handle(w http.ResponseWriter, r *http.Request){
 			log.Fatal(err)
 		}
 		log_print("Usercreate: %s", create_js.Username)
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 		w.Write(resp)
 	}
 }
@@ -213,7 +213,7 @@ func Create_guest_user(w http.ResponseWriter, r *http.Request){
 		if err != nil {
 			log.Fatal(err)
 		}
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 		w.Write(resp)
 		return
 	}
@@ -226,7 +226,7 @@ func Create_guest_user(w http.ResponseWriter, r *http.Request){
 		log.Fatal(err)
 		return
 	}
-	w.WriteHeader(200)
+	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
 
@@ -279,14 +279,14 @@ func User_Login(w http.ResponseWriter, r *http.Request){
 			return
 		}
 		log_print("ユーザーログイン ID:%s, TABLE:%s", ans.Username, ans.Table)
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 		w.Write(data)
 	} else if count == 0{
 		resp , err := json.Marshal(Message("Account does not exist","アカウント認証に失敗しました",&login_user))
 		if err != nil {
 			log.Fatal(err)
 		}
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 		w.Write(resp)
 	}else {
 		error_print("認証エラー ID:%s TABLE:%s",login_user.Username, login_user.Table)
@@ -294,46 +294,13 @@ func User_Login(w http.ResponseWriter, r *http.Request){
 		if err != nil {
 			log.Fatal(err)
 		}
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 		w.Write(resp)
 	}
 }
 
 
 //ログアウト用、トークンを破棄する
-func User_Logout(w http.ResponseWriter, r *http.Request){
-	if r.Method != "POST"{
-        http.Redirect(w, r, "/create_User", http.StatusSeeOther)
-		return
-	}
-	var user user_auth
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil{
-		ErrorResponse(err.Error(),nil,w)
-		return
-	}
-	db, err := NewDatabase(ACCOUNT_TABLE)
-	if err != nil {
-		ErrorResponse(err.Error(), nil, w)
-		return
-	}
-
-	if tmp, err := userAuthentication(db, user); tmp && err == nil {
-		fmt.Println(tmp)
-		query := "UPDATE Account_table SET token = NULL,table_id = NULL WHERE TOKEN = ?"
-		_, err := db.Exec(query, user.Token)
-		if err != nil {
-			ErrorResponse(fmt.Sprintf("クエリエラー:%s",err.Error()),&user,w)
-			return
-		}
-		log_print("ユーザーログアウト ID:%s, TABLE:%s", user.Username, user.Table)
-		if err = json.NewEncoder(w).Encode(Message("success","ログアウトに成功しました", &user)); err != nil{
-			http.Error(w,"InternalServerError",http.StatusInternalServerError)
-		}
-	}else{
-		ErrorResponse("認証エラーが発生しました、管理者に教えてください",&user,w)
-	}
-}
-
 
 
 

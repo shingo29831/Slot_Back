@@ -36,7 +36,7 @@ func loginPage(w http.ResponseWriter, r *http.Request){
 			return
 		}
 		
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 		w.Write(buf)
 	}else if r.Method == http.MethodPost {
 
@@ -85,7 +85,7 @@ func pay_root(w http.ResponseWriter, r *http.Request){
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	w.WriteHeader(200)
+	w.WriteHeader(http.StatusOK)
 	w.Write(buf)
 }
 
@@ -110,7 +110,7 @@ func dashboardPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	w.WriteHeader(200)
+	w.WriteHeader(http.StatusOK)
 	w.Write(buf)
 }
 

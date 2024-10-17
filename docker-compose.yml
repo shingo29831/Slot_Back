@@ -1,3 +1,4 @@
+
 services:
   go-app:
     build: .
