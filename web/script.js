@@ -29,31 +29,31 @@ switch (i) {
 }
 }
 function updateLogTable(logs) {
-const logTable = document.getElementById('log-table-body');
-logTable.innerHTML = ''; // テーブルをクリア
-
-logs.forEach(log => {
-    const row = document.createElement('tr');
-    // 重要度の色分け
-    let levelColor;
-    switch (log.level) {
-        case 3:
-            levelColor = 'red';
-            break;
-        case 2:
-            levelColor = 'orange';
-            break;
-        default:
-            levelColor = 'green';
-    }
-    // 各セルを作成してデータを挿入
-    row.innerHTML = `
-        <td style="color:${levelColor}">${lv_int2str(log.level)}</td>
-        <td>${log.location}</td>
-        <td>${log.message}</td>
-        <td>${log.time}</td>
-    `;
-    tableBody.appendChild(row);
-});
-console.log("all done")
+    const logTable = document.getElementById('log-table-body');
+    logTable.innerHTML = ''; // テーブルをクリア
+    
+    logs.forEach(log => {
+        const row = document.createElement('tr');
+        // 重要度の色分け
+        let levelColor;
+        switch (log.level) {
+            case 3:
+                levelColor = 'red';
+                break;
+            case 2:
+                levelColor = 'orange';
+                break;
+            default:
+                levelColor = 'green';
+        }
+        // 各セルを作成してデータを挿入
+        row.innerHTML = `
+            <td style="color:${levelColor}">${lv_int2str(log.level)}</td>
+            <td>${log.location}</td>
+            <td>${log.message}</td>
+            <td>${log.time}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+    console.log("all done")
 }

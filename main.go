@@ -67,6 +67,8 @@ func fileaccsess(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+    init_account_db()
+    init_log_DB()
     Logout_user_Array = *initArray()
     http.HandleFunc("/api/logout_requests", logout_requests)
     http.HandleFunc("/approve-logout",approve_logout)

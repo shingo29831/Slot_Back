@@ -137,17 +137,13 @@ func submit_transaction(w http.ResponseWriter, r *http.Request){
 		ErrorResponse(err.Error(),nil,w)
 		return
 	}
-	db, err := NewDatabase(ACCOUNT_TABLE)
-	if err != nil {
-		ErrorResponse(err.Error(),nil,w)
-		return
-	}
+	
 	var user struct{
 		Username string
 		Token string
 		Table string
 	}
-	err = db.QueryRow("select username, TOKEN, table_id from Account_table where table_id = ?",req.TableId).Scan(&user.Username, &user.Token, &user.Table)
+	err = account_db.QueryRow("select username, TOKEN, table_id from Account_table where table_id = ?",req.TableId).Scan(&user.Username, &user.Token, &user.Table)
 	if err != nil {
 		ErrorResponse(err.Error(),nil, w)
 		return
@@ -156,7 +152,7 @@ func submit_transaction(w http.ResponseWriter, r *http.Request){
 	dep, _  := req.DepositAmount.Int64()
  	update_money := dep - with 
 	
-	_ ,err = db.Exec("update Account_table set money = money + ? where table_id = ?",update_money, req.TableId)
+	_ ,err = account_db.Exec("update Account_table set money = money + ? where table_id = ?",update_money, req.TableId)
 	if err != nil {
 		ErrorResponse(err.Error(),nil,w)
 		return
