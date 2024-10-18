@@ -87,6 +87,7 @@ func main() {
     http.HandleFunc("/create_guest_user", Create_guest_user)
     http.HandleFunc("/user_Login", User_Login)
     http.HandleFunc("/user_Logout", User_Logout)
+    http.HandleFunc("/token_exists",Token_exists)
     http.HandleFunc("/update_money", UPDATE_USER_MONEY)
     http.HandleFunc("/get_user_money", GET_USER_MONEY)
     http.HandleFunc("/api/logs",Log_accsess)
