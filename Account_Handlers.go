@@ -296,10 +296,6 @@ func User_Login(w http.ResponseWriter, r *http.Request){
 
 
 func GET_SET_MONEY(w http.ResponseWriter, r *http.Request, userres func(*user_auth)(user_result)){
-	if r.Method != "POST"{
-        http.Redirect(w, r, "/create_User", http.StatusSeeOther)
-		return
-	}
 	var user user_auth
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil{
 		ErrorResponse(err.Error(),nil,w)
@@ -332,7 +328,12 @@ func GET_USER_MONEY(w http.ResponseWriter, r *http.Request){
 }
 
 //ユーザーの現在金額更新用のプログラム
+//社長、ここのことで合ってる？
 func UPDATE_USER_MONEY(w http.ResponseWriter, r *http.Request){
+	if r.Method != "POST"{
+        http.Redirect(w, r, "/create_User", http.StatusSeeOther)
+		return
+	}
 	GET_SET_MONEY(w,r,func (user * user_auth)(user_result){
 		query := "update Account_table set money = ?  WHERE username = ? AND password = ? AND TOKEN = ?"
 		_ ,err := account_db.Exec(query, user.Money ,user.Username, fmt.Sprintf("%x",sha256.Sum256([]byte(user.Password))), user.Token)
