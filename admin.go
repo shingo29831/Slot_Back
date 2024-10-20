@@ -143,7 +143,7 @@ func submit_transaction(w http.ResponseWriter, r *http.Request){
 		Token string
 		Table string
 	}
-	err = account_db.QueryRow("select username, TOKEN, table_id from Account_table where table_id = ?",req.TableId).Scan(&user.Username, &user.Token, &user.Table)
+	err := account_db.QueryRow("select username, TOKEN, table_id from Account_table where table_id = ?",req.TableId).Scan(&user.Username, &user.Token, &user.Table)
 	if err != nil {
 		ErrorResponse(err.Error(),nil, w)
 		return

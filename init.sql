@@ -26,7 +26,7 @@ Grant All Privileges on account_server.* to 'account_system'@'%';
 FLUSH PRIVILEGES;
 
 create table if not exists table_table(
-    table_id    varchar(128)
-    probability Integer
-    table_hash varchar(256)
+    table_id    varchar(128) unique NOT NULL
+    probability Integer 
+    table_hash varchar(256) Primary key
 )

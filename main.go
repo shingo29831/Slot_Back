@@ -91,7 +91,9 @@ func main() {
     http.HandleFunc("/update_money", UPDATE_USER_MONEY)
     http.HandleFunc("/get_user_money", GET_USER_MONEY)
     http.HandleFunc("/api/logs",Log_accsess)
-    //適当に作った登録完了フォーム（流石に適当がすぎるので、後々治す予定です)
+    http.HandleFunc("/table_probability",table_probability)
+    http.HandleFunc("/update_probability",update_probability)
+    //適当に作った登録完了フォーム（流石に適当がすぎるので、後々治す予定です)<-過去の自分　むりかも
     http.HandleFunc("/Create-success",func (w http.ResponseWriter, r *http.Request)  {
         fmt.Fprintf(w,"登録が完了しました♡")
     })
