@@ -343,3 +343,8 @@ func UPDATE_USER_MONEY(w http.ResponseWriter, r *http.Request){
 		return Message("success", "完了",user)
 	})
 }
+
+
+func update_user_money2(w http.ResponseWriter, r *http.Request){
+	
+}

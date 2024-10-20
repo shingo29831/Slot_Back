@@ -29,7 +29,6 @@
 
     </div>
     <script>
-        
         document.addEventListener('DOMContentLoaded',fetchTables)
         async function fetchTables() {
             try {
@@ -39,6 +38,7 @@
                     throw new Error('データの取得に失敗しました')
                 }
                 const log = await response.json()
+                console.log(log)
                 updateTable(log)
             }catch (error){
                 console.error(error)
@@ -52,7 +52,7 @@
                 const row  = document.createElement('tr');
 
                 const tableIdCell = document.createElement('td')
-                tableIdCell.textContent = element.tableId
+                tableIdCell.textContent = element.table_id
                 row.appendChild(tableIdCell)
 
                 const probabilityCell = document.createElement('td')
@@ -99,6 +99,8 @@
                         }
                     }  
                 })
+                actionCell.appendChild(textCell)
+                row.appendChild(actionCell)
                 table.appendChild(row)
             });
         }

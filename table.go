@@ -17,7 +17,7 @@ create table if not exists table_table(
 type table_request struct{
     Key    string `json:"key"`
 	Table_id string `json:"table_id"`	
-	Probability int `json:"probability"`
+	Probability json.Number `json:"probability"`
     Table_hash string `json:"table_hash"`
 }
 type table_resp struct{
@@ -69,8 +69,9 @@ func update_probability(w http.ResponseWriter, r *http.Request){
         UPDATE table_table SET probability = ? 
         WHERE table_hash = ?
     `
-    if r.Method == http.MethodPost{
+    if r.Method != http.MethodPost{
         http.Error(w,"Bad Request",400)
+
         return
     }
     var table table_request
@@ -79,12 +80,13 @@ func update_probability(w http.ResponseWriter, r *http.Request){
         error_print("%v", err)
         return
     }
-    if table.Key == Authentication_Key{
+    if table.Key != Authentication_Key{
         http.Error(w,"Bad Request",http.StatusBadRequest)
         error_print("テーブル認証エラー：存在しない認証が届きました")
         return
     }
-    if _ ,err := account_db.Exec(query, table.Probability, table.Table_hash); err != nil{
+    probability, _  := table.Probability.Int64()
+    if _ ,err := account_db.Exec(query, probability, table.Table_hash); err != nil{
         http.Error(w,"InternalServerError", http.StatusInternalServerError)
         error_print("クエリエラー:%v", err)
         return
@@ -94,7 +96,7 @@ func update_probability(w http.ResponseWriter, r *http.Request){
         Table_id: table.Table_id,
         Table_hash: table.Table_hash,
         Result: "Success",
-        Probability: table.Probability,
+        Probability: int(probability),
     }
     if err := json.NewEncoder(w).Encode(table_res); err != nil {
         http.Error(w,"InternalServerError",500)
