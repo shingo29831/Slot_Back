@@ -19,8 +19,20 @@ create table if not exists Account_table(
     usertype Integer,
     password varchar(256),
     money Integer,
-    table_id varchar(32),
+    table_id varchar(128),
     TOKEN varchar(256)
 );
 Grant All Privileges on account_server.* to 'account_system'@'%';
 FLUSH PRIVILEGES;
+
+create table if not exists table_table(
+    table_id    varchar(128) unique NOT NULL,
+    probability Integer ,
+    table_hash varchar(256) 
+);
+
+create table if not exists slot_result_table(
+    time TIMESTAMP,
+    money Integer,
+    table_id varchar(256)
+);

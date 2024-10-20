@@ -24,7 +24,7 @@ import (
 
 //外部接続潰し、正しい端末以外からの通信を破棄する
 
-
+var account_db *sql.DB
 var err error
 var Authentication_Key = "aaa"
 var ACCOUNT_TABLE = "account_system:xM7B)NY-eexsJm@tcp(localhost:3306)/account_server"
@@ -47,6 +47,12 @@ type user_result struct {
 	Table 	 string `json:"table"`
 	Money 	 int	`json:"money"`
 }
+func init_account_db(){
+	account_db, err = NewDatabase(ACCOUNT_TABLE)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
 // Authentication check method
 func checkAuthenticationKey(user user_auth) error {
@@ -57,12 +63,12 @@ func checkAuthenticationKey(user user_auth) error {
 }
 
 // Query user token in DB method
-func checkUserToken(db *sql.DB, user user_auth) (bool, error) {
+func checkUserToken(user user_auth) (bool, error) {
     query := `
 		SELECT COUNT(*) FROM Account_table WHERE TOKEN = ? AND username = ? AND password = ?
 	`    
 	var count int
-    err := db.QueryRow(query, user.Token, user.Username,
+    err := account_db.QueryRow(query, user.Token, user.Username,
 				fmt.Sprintf("%x", sha256.Sum256([]byte(user.Password)))).Scan(&count)
     if err != nil {
         return false, fmt.Errorf("クエリエラー")
@@ -109,13 +115,13 @@ func ErrorResponse(message string, user *user_auth, w http.ResponseWriter) {
 }
 
 // User authentication process refactored
-func userAuthentication(db *sql.DB, user user_auth) (bool, error) {
+func userAuthentication(user user_auth) (bool, error) {
     if err := checkAuthenticationKey(user); err != nil {
         return false, err
     }
 
     // Check if token is valid
-    return checkUserToken(db, user)
+    return checkUserToken(user)
 }
 
 
@@ -137,17 +143,11 @@ func create_User_Handle(w http.ResponseWriter, r *http.Request){
 		error_print("jsonえらー")
 		return
 	}
-	db, err := NewDatabase(ACCOUNT_TABLE)
-	if err != nil {
-		ErrorResponse("データベース接続でエラーが発生しました",nil,w)
-		error_print("DBエラー")
-		return
-	}
 	hashPassword := fmt.Sprintf("%x",sha256.Sum256([]byte(create_js.Password)))
 	//USERにprimary keyを指定しているので、エラーが起きたら、すでにその名前があると認識させ、もう一度と返します
 	//ここバグの温床になる気がするで、元気があったら改善する
 	
-	_ ,err = db.Exec("Insert into Account_table(username, usertype,password,money,TOKEN) values (?,1,?,0, NULL)",create_js.Username,hashPassword)
+	_ ,err = account_db.Exec("Insert into Account_table(username, usertype,password,money,TOKEN) values (?,1,?,0, NULL)",create_js.Username,hashPassword)
 	if err != nil{
 		resp, err := json.Marshal(Message("username_already_exists","ユーザーネームが既に存在しています",&create_js))
 		if err != nil {
@@ -200,13 +200,8 @@ func Create_guest_user(w http.ResponseWriter, r *http.Request){
 	answer.Username = MakeRandomStr(32)
 	answer.Password = MakeRandomStr(32)
 	answer.Table = ca_js.Table
-	db, err := NewDatabase(ACCOUNT_TABLE)
-	if err != nil {
-		ErrorResponse("データベース接続に失敗しました",&ca_js, w)
-		return
-	}
 	answer.Token = MakeRandomStr(128)
-	_ ,err = db.Exec("Insert into Account_table(username, usertype,password,money,table_id,TOKEN) values (?,2,?,0,?,?)",answer.Username,fmt.Sprintf("%x", sha256.Sum256([]byte(answer.Password))),answer.Table,answer.Token)
+	_ ,err = account_db.Exec("Insert into Account_table(username, usertype,password,money,table_id,TOKEN) values (?,2,?,0,?,?)",answer.Username,fmt.Sprintf("%x", sha256.Sum256([]byte(answer.Password))),answer.Table,answer.Token)
 	if err != nil{
 		fmt.Println(err)
 		resp, err := json.Marshal(Message("username_already_exists","ユーザーが既に存在しています",&ca_js))
@@ -247,14 +242,9 @@ func User_Login(w http.ResponseWriter, r *http.Request){
 		return
 	}
 	password := fmt.Sprintf("%x", sha256.Sum256([]byte(login_user.Password)))
-	db, err :=  NewDatabase(ACCOUNT_TABLE)
-    if err != nil {
-		ErrorResponse(err.Error(), &login_user,w)
-    }
-    defer db.Close()
-    query := "SELECT COUNT(*) FROM Account_table WHERE username = ? AND password = ?"
+	query := "SELECT COUNT(*) FROM Account_table WHERE username = ? AND password = ?"
     var count int
-    err = db.QueryRow(query, login_user.Username, password).Scan(&count)
+    err = account_db.QueryRow(query, login_user.Username, password).Scan(&count)
     if err != nil {
 		ErrorResponse(err.Error(),&login_user, w)
 		return
@@ -266,7 +256,7 @@ func User_Login(w http.ResponseWriter, r *http.Request){
 		ans.Table = login_user.Table
 		ans.Token = MakeRandomStr(128)
 		ans.Result = "success"
-		_ ,err := db.Exec("UPDATE Account_table SET TOKEN = ?,table_id = ? WHERE username = ? AND password = ?",
+		_ ,err := account_db.Exec("UPDATE Account_table SET TOKEN = ?,table_id = ? WHERE username = ? AND password = ?",
 				 ans.Token, ans.Table,ans.Username, password)
 		if err != nil {
 			ErrorResponse(err.Error(), &login_user, w)
@@ -305,29 +295,18 @@ func User_Login(w http.ResponseWriter, r *http.Request){
 
 
 
-func GET_SET_MONEY(w http.ResponseWriter, r *http.Request, userres func(*user_auth, *sql.DB)(user_result)){
-	if r.Method != "POST"{
-        http.Redirect(w, r, "/create_User", http.StatusSeeOther)
-		return
-	}
+func GET_SET_MONEY(w http.ResponseWriter, r *http.Request, userres func(*user_auth)(user_result)){
 	var user user_auth
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil{
 		ErrorResponse(err.Error(),nil,w)
 		return
 	}
-	db, err := NewDatabase(ACCOUNT_TABLE)
-	if err != nil{
-		ErrorResponse(err.Error(), nil, w)
-		return
-	}
-	defer db.Close()
-
-	if tmp, err := userAuthentication(db, user); !tmp || err != nil{
+	if tmp, err := userAuthentication(user); !tmp || err != nil{
 		ErrorResponse("認証失敗",nil, w)
 		return
 	} 
 	w.Header().Set("Content-Type", "application/json")
-	if err = json.NewEncoder(w).Encode(userres(&user,db)); err != nil{
+	if err = json.NewEncoder(w).Encode(userres(&user)); err != nil{
 		http.Error(w, "Server Error", http.StatusInternalServerError)
 	}
 }
@@ -335,11 +314,11 @@ func GET_SET_MONEY(w http.ResponseWriter, r *http.Request, userres func(*user_au
 
 //ユーザーの現在金額取得用のプログラム
 func GET_USER_MONEY(w http.ResponseWriter, r *http.Request){
-	GET_SET_MONEY(w,r,func (user *user_auth,db *sql.DB)(user_result){
+	GET_SET_MONEY(w,r,func (user *user_auth)(user_result){
 		password := fmt.Sprintf("%x", sha256.Sum256([]byte(user.Password)))
 		var money int
 		query := "select money from Account_table WHERE username = ? AND password = ? AND TOKEN = ?"
-		err := db.QueryRow(query, user.Username, password, user.Token).Scan(&money)
+		err := account_db.QueryRow(query, user.Username, password, user.Token).Scan(&money)
 		if err != nil {
 			return Message("Error", "クリエでエラーが発生しました",user)
 		}
@@ -349,13 +328,23 @@ func GET_USER_MONEY(w http.ResponseWriter, r *http.Request){
 }
 
 //ユーザーの現在金額更新用のプログラム
+//社長、ここのことで合ってる？
 func UPDATE_USER_MONEY(w http.ResponseWriter, r *http.Request){
-	GET_SET_MONEY(w,r,func (user * user_auth, db *sql.DB)(user_result){
+	if r.Method != "POST"{
+        http.Redirect(w, r, "/create_User", http.StatusSeeOther)
+		return
+	}
+	GET_SET_MONEY(w,r,func (user * user_auth)(user_result){
 		query := "update Account_table set money = ?  WHERE username = ? AND password = ? AND TOKEN = ?"
-		_ ,err := db.Exec(query, user.Money ,user.Username, fmt.Sprintf("%x",sha256.Sum256([]byte(user.Password))), user.Token)
+		_ ,err := account_db.Exec(query, user.Money ,user.Username, fmt.Sprintf("%x",sha256.Sum256([]byte(user.Password))), user.Token)
 		if err != nil {
 			return Message("Error", "クリエでエラーが発生しました",user)
 		}
 		return Message("success", "完了",user)
 	})
+}
+
+
+func update_user_money2(w http.ResponseWriter, r *http.Request){
+	
 }

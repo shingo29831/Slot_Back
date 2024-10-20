@@ -1,14 +1,15 @@
 package main
 
 import (
+	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"sync"
 	"time"
-	"encoding/json"
-    _ "database/sql"
-    _ "github.com/go-sql-driver/mysql"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 //ここからログ鯖関連
@@ -44,6 +45,13 @@ type Log struct {
 //	}
 //}
 
+var log_db *sql.DB
+
+func init_log_DB(){
+	if log_db, err = NewDatabase("logsystem:logsyspassword@tcp(localhost:3306)/log_server"); err != nil{
+		log.Fatal(err)
+	}
+}
 
 //複数ログ用ハンドル,主にこいつを利用してほしい
 
@@ -82,12 +90,7 @@ func Log_accsess(w http.ResponseWriter, r *http.Request){
 		query += fmt.Sprintf(" AND time <= '%s'",filterCondition.EndTime.String())
 	}
 	query += " ORDER BY time DESC LIMIT 100"
-	db, err := NewDatabase("logsystem:logsyspassword@tcp(localhost:3306)/log_server")
-	if err != nil {
-		http.Error(w,"サーバーエラー",500)
-		return
-	}
-	rows, err := db.Query(query)
+	rows, err := log_db.Query(query)
     if err != nil {
         http.Error(w, "データベースからのデータ取得に失敗しました : "+ err.Error(), http.StatusInternalServerError)
         return
@@ -139,16 +142,8 @@ func Log_ALL_recive(w http.ResponseWriter, r *http.Request){
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
-		db, err:= NewDatabase(/*仮*/"logsystem:logsyspassword@tcp(localhost:3306)/log_server")
-		if err != nil{
-			fmt.Printf("Error:%s\n",err)
-			wg.Done()
-			return
-		}
-		//エラー処理を書かなきゃいけない　あとでやる
-		defer db.Close()
 		for _, v := range logs.Logs {
-			_, err = db.Exec("insert into Log_table (time,level,location,message) values (?,?,?,?)",time.Now().Format("2006-01-02T15:04:05Z07:00"),v.Level,v.Location,v.Message)
+			_, err = log_db.Exec("insert into Log_table (time,level,location,message) values (?,?,?,?)",time.Now().Format("2006-01-02T15:04:05Z07:00"),v.Level,v.Location,v.Message)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -177,15 +172,7 @@ func Log_recive(w http.ResponseWriter, r *http.Request) {
 	wg.Add(1)
 	go func ()  {
 		
-		db, err:= NewDatabase("logsystem:logsyspassword@tcp(localhost:3306)/log_server")
-		if err != nil{
-			fmt.Printf("Error:%s\n",err)
-			wg.Done()
-			return
-		}
-		//エラー処理を書かなきゃいけない　あとでやる
-		defer db.Close()
-		_, err = db.Exec("insert into Log_table (time,level,location,message) values (?,?,?,?)",time.Now().Format("2006-01-02T15:04:05Z07:00"),logs.Level,logs.Location,logs.Message)
+		_, err = log_db.Exec("insert into Log_table (time,level,location,message) values (?,?,?,?)",time.Now().Format("2006-01-02T15:04:05Z07:00"),logs.Level,logs.Location,logs.Message)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -210,14 +197,7 @@ func server_log(level int, message string, arg... any){
 	log1.Level = level
 	log1.Time = time.Now().Format("2006-01-02T15:04:05Z07:00")
 	log1.Location = "server"
-	db, err:= NewDatabase("logsystem:logsyspassword@tcp(localhost:3306)/log_server")
-	if err != nil{
-		fmt.Printf("Error:%s\n",err)
-		return
-	}
-	//エラー処理を書かなきゃいけない　あとでやる
-	defer db.Close()
-	_, err = db.Exec("insert into Log_table (time,level,location,message) values (?,?,?,?)",log1.Time,log1.Level,log1.Location,log1.Message)
+	_, err = log_db.Exec("insert into Log_table (time,level,location,message) values (?,?,?,?)",log1.Time,log1.Level,log1.Location,log1.Message)
 	if err != nil {
 		log.Fatal(err)	
 	}

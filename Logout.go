@@ -63,13 +63,8 @@ func approve_logout(w http.ResponseWriter, r *http.Request){
 		return
 	}
 	Logout_user_Array.del_data(user)
-	db, err := NewDatabase(ACCOUNT_TABLE)
-	if err != nil {
-		http.Error(w,"InternalServerError",http.StatusInternalServerError)
-		return
-	}
 	count := -1
-	if err = db.QueryRow(query, user.TableId, user.Name).Scan(&count); err != nil || count != 1{
+	if err = account_db.QueryRow(query, user.TableId, user.Name).Scan(&count); err != nil || count != 1{
 		http.Error(w, "InternalServerError", http.StatusInternalServerError)
 		error_print("認証エラー%s, クエリ結果:%d",err, count)
 		return
@@ -79,7 +74,7 @@ func approve_logout(w http.ResponseWriter, r *http.Request){
 		WHERE table_id = ? AND username = ? 
 	`
 	
-	if _, err = db.Exec(query, user.TableId,user.Name); err != nil {
+	if _, err = account_db.Exec(query, user.TableId,user.Name); err != nil {
 		http.Error(w, "InternalServerError", http.StatusInternalServerError)
 		error_print("クリエエラー%s", err.Error())
 		return
@@ -125,13 +120,8 @@ func Token_exists(w http.ResponseWriter, r *http.Request){
 		ErrorResponse(err.Error(),nil,w)
 		return
 	}
-	db, err := NewDatabase(ACCOUNT_TABLE)
-	if err != nil {
-		ErrorResponse(err.Error(), nil, w)
-		return
-	}
 	count := -1
-	if err = db.QueryRow(query, user.Table, user.Token,user.Username).Scan(&count); err != nil || count == -1  {
+	if err = account_db.QueryRow(query, user.Table, user.Token,user.Username).Scan(&count); err != nil || count == -1  {
 		ErrorResponse("クエリエラー",&user, w)
 		return
 	}

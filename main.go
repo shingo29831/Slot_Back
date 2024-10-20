@@ -67,6 +67,8 @@ func fileaccsess(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+    init_account_db()
+    init_log_DB()
     Logout_user_Array = *initArray()
     http.HandleFunc("/api/logout_requests", logout_requests)
     http.HandleFunc("/approve-logout",approve_logout)
@@ -85,10 +87,15 @@ func main() {
     http.HandleFunc("/create_guest_user", Create_guest_user)
     http.HandleFunc("/user_Login", User_Login)
     http.HandleFunc("/user_Logout", User_Logout)
+    http.HandleFunc("/token_exists",Token_exists)
     http.HandleFunc("/update_money", UPDATE_USER_MONEY)
     http.HandleFunc("/get_user_money", GET_USER_MONEY)
     http.HandleFunc("/api/logs",Log_accsess)
-    //適当に作った登録完了フォーム（流石に適当がすぎるので、後々治す予定です)
+    http.HandleFunc("/table_probability",table_probability)
+    http.HandleFunc("/update-probability",update_probability)
+    http.HandleFunc("/Gettables", GetTables)
+    http.HandleFunc("/tables",show_probability)
+    //適当に作った登録完了フォーム（流石に適当がすぎるので、後々治す予定です)<-過去の自分　むりかも
     http.HandleFunc("/Create-success",func (w http.ResponseWriter, r *http.Request)  {
         fmt.Fprintf(w,"登録が完了しました♡")
     })

@@ -137,17 +137,13 @@ func submit_transaction(w http.ResponseWriter, r *http.Request){
 		ErrorResponse(err.Error(),nil,w)
 		return
 	}
-	db, err := NewDatabase(ACCOUNT_TABLE)
-	if err != nil {
-		ErrorResponse(err.Error(),nil,w)
-		return
-	}
+	
 	var user struct{
 		Username string
 		Token string
 		Table string
 	}
-	err = db.QueryRow("select username, TOKEN, table_id from Account_table where table_id = ?",req.TableId).Scan(&user.Username, &user.Token, &user.Table)
+	err := account_db.QueryRow("select username, TOKEN, table_id from Account_table where table_id = ?",req.TableId).Scan(&user.Username, &user.Token, &user.Table)
 	if err != nil {
 		ErrorResponse(err.Error(),nil, w)
 		return
@@ -156,7 +152,7 @@ func submit_transaction(w http.ResponseWriter, r *http.Request){
 	dep, _  := req.DepositAmount.Int64()
  	update_money := dep - with 
 	
-	_ ,err = db.Exec("update Account_table set money = money + ? where table_id = ?",update_money, req.TableId)
+	_ ,err = account_db.Exec("update Account_table set money = money + ? where table_id = ?",update_money, req.TableId)
 	if err != nil {
 		ErrorResponse(err.Error(),nil,w)
 		return
@@ -166,4 +162,31 @@ func submit_transaction(w http.ResponseWriter, r *http.Request){
 	if err = json.NewEncoder(w).Encode(Message("success","ALL DONE",nil)); err != nil{
 		ErrorResponse("error",nil,w)
 	}
+}
+
+func show_probability(w http.ResponseWriter, r *http.Request){
+	
+	// セッションを取得
+	session, _ := store.Get(r, "auth-session")
+
+	// 認証されていない場合、ログインページにリダイレクト
+	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	file, err := os.Open("./web/table_probability.html")
+	if err != nil {
+		http.Error(w, "InternalServerError", http.StatusInternalServerError)
+		error_print("table_probabilityエラー:%v", w)
+		return
+	}
+	buf, err := io.ReadAll(file)
+	if err != nil {
+		http.Error(w, "InternalServerError", http.StatusInternalServerError)
+		error_print("table_probabilityエラー:%v", w)
+		return
+	}
+	w.Header().Set("Content-type", "text/html")
+	w.WriteHeader(200)
+	w.Write(buf)
 }
