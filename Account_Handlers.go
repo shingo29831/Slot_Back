@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -28,7 +29,7 @@ import (
 var account_db *sql.DB
 var err error
 var Authentication_Key = "aaa"
-var ACCOUNT_TABLE = "account_system:xM7B)NY-eexsJm@tcp(localhost:3306)/account_server"
+var ACCOUNT_TABLE = os.Getenv("ACCOUNT_SERVER")
 
 type user_auth struct {
 	Key 	 string `json:"key"`

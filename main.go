@@ -4,18 +4,32 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
 // Databaseの初期化メソッド（コンストラクタ風）
 func NewDatabase(dsn string) (*sql.DB, error) {
-    db, err := sql.Open("mysql", dsn)
-    if err != nil {
-        return nil, err
+    var db *sql.DB
+    var err error
+    for i := 0; i < 10; i++ {
+        db, err = sql.Open("mysql", dsn)
+        if err == nil {
+            err = db.Ping()
+        }
+
+        if err == nil {
+            fmt.Println("Connected to the database!")
+            break
+        }
+
+        log.Printf("Failed to connect to database (attempt %d/10): %s", i+1, err)
+        time.Sleep(3 * time.Second)  // 3秒待機してリトライ
     }
 
     // 接続テスト

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -48,7 +49,8 @@ type Log struct {
 var log_db *sql.DB
 
 func init_log_DB(){
-	if log_db, err = NewDatabase("logsystem:logsyspassword@tcp(localhost:3306)/log_server"); err != nil{
+	dsn:= os.Getenv("LOG_SERVER")
+	if log_db, err = NewDatabase(dsn); err != nil{
 		log.Fatal(err)
 	}
 }

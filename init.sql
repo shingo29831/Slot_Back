@@ -31,6 +31,8 @@ create table if not exists table_table(
     probability Integer,
     table_hash varchar(256)
 );
+Insert Into table_table(table_id, probability, table_hash)values('table_120', 1, '21382817893728');
+
 
 create table if not exists session_tokens(
     time TIMESTAMP,

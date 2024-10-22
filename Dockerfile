@@ -1,28 +1,21 @@
-# ベースイメージとしてGoを使用
-FROM ubuntu:22.04 
+# ベースイメージを指定
+FROM golang:1.23
 
 # 作業ディレクトリを作成
 WORKDIR /app
 
-RUN apt-get update && \
-        apt-get install wget -y
+# 作業ディレクトリにソースコードをコピー
+COPY . .
 
-RUN wget https://go.dev/dl/go1.23.1.linux-amd64.tar.gz  && \
-        tar -C /usr/local -xzf go1.23.1.linux-amd64.tar.gz
+ENV LOG_SERVER="logsystem:logsyspassword@tcp(mysql:3306)/log_server"
 
-RUN export PATH=$PATH:/usr/local/go/bin
+ENV ACCOUNT_SERVER="account_system:xM7B)NY-eexsJm@tcp(mysql:3306)/account_server"
 
-# 必要なファイルをコンテナにコピー
-COPY . /app
+# 必要な依存関係をインストール
+RUN go mod tidy
 
-RUN rm -r go.mod go.sum
+# アプリケーションをビルド
+RUN go build -o myapp .
 
-
-RUN /usr/local/go/bin/go mod init app && /usr/local/go/bin/go mod tidy 
-
-# 静的リンクでGoバイナリをビルド
-RUN /usr/local/go/bin/go build -o main .
-
-# アプリケーションを起動
-CMD ["./main"]
-
+# コンテナ起動時に実行されるコマンド
+CMD ["/app/myapp"]
