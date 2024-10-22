@@ -106,6 +106,13 @@ func update_probability(w http.ResponseWriter, r *http.Request){
 }
 
 func GetTables(w http.ResponseWriter, r *http.Request){
+    session, _ := store.Get(r, "auth-session")
+
+	// 認証されていない場合、ログインページにリダイレクト
+	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
     query := `
         SELECT table_id,probability,table_hash FROM table_table
     `

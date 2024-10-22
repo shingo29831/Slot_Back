@@ -17,6 +17,7 @@ COPY . /app
 
 RUN rm -r go.mod go.sum
 
+
 RUN /usr/local/go/bin/go mod init app && /usr/local/go/bin/go mod tidy 
 
 # 静的リンクでGoバイナリをビルド

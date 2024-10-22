@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -70,6 +69,8 @@ func main() {
     init_account_db()
     init_log_DB()
     Logout_user_Array = *initArray()
+    http.HandleFunc("/totals",totals_html)
+    http.HandleFunc("/api/totals",totals)
     http.HandleFunc("/api/logout_requests", logout_requests)
     http.HandleFunc("/approve-logout",approve_logout)
     http.HandleFunc("/styles_css", style_css)
@@ -99,6 +100,9 @@ func main() {
     http.HandleFunc("/Create-success",func (w http.ResponseWriter, r *http.Request)  {
         fmt.Fprintf(w,"登録が完了しました♡")
     })
-    fmt.Println("Server is running on port 8080...")
-    log.Fatal(http.ListenAndServe(":8080", nil))
+    fmt.Println("Server is running on port 8443...")
+    err := http.ListenAndServeTLS(":8443", "server.crt", "server.key", nil)
+    if err != nil {
+        panic(err)
+    }
 }

@@ -17,13 +17,6 @@ func initArray()(*Array){
 	return &array
 }
 
-func (array * Array)get(i int)(any){
-	if i >= array.size || i < 0{
-		return nil
-	}
-	return array.data[i]
-}
-
 func (array * Array)del_data(data any)(bool){
 	for i := 0; i < array.size; i++ {
 		if reflect.DeepEqual(array.data[i],data){
