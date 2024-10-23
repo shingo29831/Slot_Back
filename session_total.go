@@ -10,15 +10,8 @@ func total_Query()([]byte, error){
 	//間違っているかもしれないし、しないかもしれない　
 	query := `
 SELECT session_id,
-    SUM(CASE WHEN type = 0 THEN fluctuation ELSE 0 END) AS seles,
-    MAX(CASE WHEN type = 1 THEN money END) AS last_amount 
-FROM slot_result_table t1
-WHERE t1.type = 0 OR (t1.type = 1 AND t1.time = (
-    SELECT MAX(t2.time) FROM slot_result_table t2
-    WHERE t2.type = 1 AND t1.session_id = t2.session_id
-))
-GROUP BY session_id 
-ORDER BY session_id
+seles,balance AS last_amount 
+FROM sessions
 
 	`
 	rows, err := account_db.Query(query)
