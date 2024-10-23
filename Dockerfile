@@ -1,5 +1,18 @@
 # ベースイメージを指定
-FROM golang:1.23
+FROM ubuntu:22.04
+
+RUN apt-get update && apt-get install -y \
+    curl \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# 最新のGoバージョンをダウンロード
+RUN curl -OL https://golang.org/dl/go1.23.1.linux-amd64.tar.gz \
+    && tar -C /usr/local -xzf go1.23.1.linux-amd64.tar.gz \
+    && rm go1.23.1.linux-amd64.tar.gz
+
+# 環境変数の設定
+ENV PATH="/usr/local/go/bin:${PATH}"
 
 # 作業ディレクトリを作成
 WORKDIR /app

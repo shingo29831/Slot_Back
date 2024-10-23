@@ -13,6 +13,7 @@ services:
   mysql:
     image: mysql:8.0
     container_name: mysql
+    command: --sql-mode="ONLY_FULL_GROUP_BY,NO_ZERO_IN_DATE"
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: db1

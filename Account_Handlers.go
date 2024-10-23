@@ -245,22 +245,6 @@ func Create_guest_user(w http.ResponseWriter, r *http.Request){
 }
 
 
-func table2user(table string)(user_auth, error){
-	query := `
-		SELECT username, TOKEN FROM Account_table
-		WHERE table_id = ?
-	`
-	var username, token string
-	if err := account_db.QueryRow(query, table).Scan(&username, &token); err != nil{
-		return user_auth{}, err
-	}
-	return user_auth{
-		Username: username,
-		Token: token,
-	}, nil
-}
-
-
 //ログイン　ログインをしたらトークンを生成して、やり取りができるようになる
 func User_Login(w http.ResponseWriter, r *http.Request){
 	if r.Method != "POST"{
