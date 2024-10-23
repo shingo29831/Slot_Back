@@ -81,3 +81,9 @@ table_hash実装したほうがいいのかわからん
 # 管理側セキュリティガバガバ問題
 
 想像以上にこれやばいかもしれないので、修正必須
+↑クッキーが想像以上に便利そうだからなんとかなるかもしれん
+
+
+# とりまHTTPS
+以下のコマンドでHTTPSにできる（その代わりHTTP不可）
+openssl req -new -x509 -days 365 -nodes -out server.crt -keyout server.key

@@ -8,15 +8,28 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
 // Databaseの初期化メソッド（コンストラクタ風）
 func NewDatabase(dsn string) (*sql.DB, error) {
-    db, err := sql.Open("mysql", dsn)
-    if err != nil {
-        return nil, err
+    var db *sql.DB
+    var err error
+    for i := 0; i < 10; i++ {
+        db, err = sql.Open("mysql", dsn)
+        if err == nil {
+            err = db.Ping()
+        }
+
+        if err == nil {
+            fmt.Println("Connected to the database!")
+            break
+        }
+
+        log.Printf("Failed to connect to database (attempt %d/10): %s", i+1, err)
+        time.Sleep(3 * time.Second)  // 3秒待機してリトライ
     }
 
     // 接続テスト
@@ -70,6 +83,8 @@ func main() {
     init_account_db()
     init_log_DB()
     Logout_user_Array = *initArray()
+    http.HandleFunc("/totals",totals_html)
+    http.HandleFunc("/api/totals",totals)
     http.HandleFunc("/api/logout_requests", logout_requests)
     http.HandleFunc("/approve-logout",approve_logout)
     http.HandleFunc("/styles_css", style_css)
@@ -99,6 +114,9 @@ func main() {
     http.HandleFunc("/Create-success",func (w http.ResponseWriter, r *http.Request)  {
         fmt.Fprintf(w,"登録が完了しました♡")
     })
-    fmt.Println("Server is running on port 8080...")
-    log.Fatal(http.ListenAndServe(":8080", nil))
+    fmt.Println("Server is running on port 8443...")
+    err := http.ListenAndServeTLS(":8443", "server.crt", "server.key", nil)
+    if err != nil {
+        panic(err)
+    }
 }

@@ -16,6 +16,13 @@ type Logout_user struct {
 var Logout_user_Array Array
 
 func Logout_page(w http.ResponseWriter, r *http.Request){
+	session, _ := store.Get(r, "auth-session")
+
+	// 認証されていない場合、ログインページにリダイレクト
+	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 	file, err := os.Open("./web/Logout_req.html")
 	if err != nil {
 		http.Error(w, "InternalServerError", http.StatusInternalServerError)
@@ -32,6 +39,13 @@ func Logout_page(w http.ResponseWriter, r *http.Request){
 }
 
 func style_css(w http.ResponseWriter, r *http.Request){
+	session, _ := store.Get(r, "auth-session")
+
+	// 認証されていない場合、ログインページにリダイレクト
+	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 	file, err := os.Open("./web/styles.css")
 	if err != nil {
 		http.Error(w, "InternalServerError", http.StatusInternalServerError)
@@ -50,6 +64,13 @@ func style_css(w http.ResponseWriter, r *http.Request){
 }
 
 func approve_logout(w http.ResponseWriter, r *http.Request){
+	session, _ := store.Get(r, "auth-session")
+
+	// 認証されていない場合、ログインページにリダイレクト
+	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 	query := `
 		SELECT COUNT(*) FROM Account_table 	WHERE table_id = ? AND username = ?
 	`
@@ -143,6 +164,13 @@ func Token_exists(w http.ResponseWriter, r *http.Request){
 }
 
 func logout_requests(w http.ResponseWriter, r *http.Request){
+	session, _ := store.Get(r, "auth-session")
+
+	// 認証されていない場合、ログインページにリダイレクト
+	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 	if r.Method != http.MethodPost {
 		http.Redirect(w,r,"/create_User",http.StatusSeeOther)
 		return

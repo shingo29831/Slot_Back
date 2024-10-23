@@ -2,10 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"io"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gorilla/sessions"
 )
@@ -19,6 +20,31 @@ type pay_struct struct{
 	TableId string `json:"tableId"`
 	DepositAmount json.Number `json:"depositAmount"`
 	WithdrawalAmoun json.Number `json:"withdrawalAmoun"`
+}
+
+func totals_html(w http.ResponseWriter, r *http.Request){
+	session, _ := store.Get(r, "auth-session")
+
+	// 認証されていない場合、ログインページにリダイレクト
+	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	
+	file, err := os.Open("./web/total.html")
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	defer file.Close()
+
+	buf, err := io.ReadAll(file)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write(buf)
 }
 
 func loginPage(w http.ResponseWriter, r *http.Request){
@@ -131,6 +157,13 @@ func submit_transaction(w http.ResponseWriter, r *http.Request){
 		http.Error(w,"権限がありません", http.StatusForbidden)
 		return
 	}
+	session, _ := store.Get(r, "auth-session")
+
+	// 認証されていない場合、ログインページにリダイレクト
+	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 	var req pay_struct 
 	
 	if err := json.NewDecoder(r.Body).Decode(&req);err != nil{
@@ -151,6 +184,36 @@ func submit_transaction(w http.ResponseWriter, r *http.Request){
 	with ,_ := req.WithdrawalAmoun.Int64()
 	dep, _  := req.DepositAmount.Int64()
  	update_money := dep - with 
+	update_type := 0
+	if update_money < 0{
+		update_money = 2
+	}
+	query := `
+		select money from Account_table WHERE username = ? AND TOKEN = ?
+ 	`
+ 	now := 0
+ 	if err := account_db.QueryRow(query, user.Username,user.Token).Scan(&now); err != nil{
+		http.Error(w, "InternalServerError",http.StatusInternalServerError)
+		error_print("クリエエラー１%v",err)
+		return
+ 	}
+	query = `
+	 	select id from session_tokens
+	 	where TOKEN = ? AND username = ? AND table_id = ?
+ 	`
+ 	var id int
+ 	if err := account_db.QueryRow(query, user.Token, user.Username, user.Table).Scan(&id); err != nil{
+		http.Error(w, "InternalServerError",http.StatusInternalServerError)
+		error_print("クリエエラー2%v",err)
+		return
+ 	}
+ 	query = `
+		 Insert Into slot_result_table(time, money, fluctuation, type, session_id, user, table_id)
+		 values(?,?,?,?,?,?,?)
+ 	`
+ 	if _, err := account_db.Exec(query, time.Now().Format("2006-01-02 15:04:05"), now+int(update_money), update_money, update_type, id, user.Username,user.Table); err != nil{
+		http.Error(w,"InternalSerberError", http.StatusInternalServerError)
+ 	}
 	
 	_ ,err = account_db.Exec("update Account_table set money = money + ? where table_id = ?",update_money, req.TableId)
 	if err != nil {

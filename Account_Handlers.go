@@ -1,13 +1,15 @@
 package main
 
 import (
-	"crypto/sha256"
 	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -27,7 +29,7 @@ import (
 var account_db *sql.DB
 var err error
 var Authentication_Key = "aaa"
-var ACCOUNT_TABLE = "account_system:xM7B)NY-eexsJm@tcp(localhost:3306)/account_server"
+var ACCOUNT_TABLE = os.Getenv("ACCOUNT_SERVER")
 
 type user_auth struct {
 	Key 	 string `json:"key"`
@@ -60,6 +62,19 @@ func checkAuthenticationKey(user user_auth) error {
         return fmt.Errorf("認証キーが無効です")
     }
     return nil
+}
+
+func createToken(user user_auth)(string ,error){
+	token := MakeRandomStr(128)
+	query := `
+		Insert Into session_tokens (time, TOKEN,table_id, username) values (?,?,?,?)
+	`
+	_, err := account_db.Exec(query, time.Now().Format("2006-01-02 15:04:05"), token, user.Table,user.Username)
+	if err != nil {
+		error_print("クリエエラー%v",err)
+		return "", err
+	}
+	return token, nil
 }
 
 // Query user token in DB method
@@ -196,11 +211,15 @@ func Create_guest_user(w http.ResponseWriter, r *http.Request){
 		ErrorResponse("テーブル認証に失敗しました",&ca_js,w)
 		return
 	}
+	
 	var answer user_result
 	answer.Username = MakeRandomStr(32)
 	answer.Password = MakeRandomStr(32)
 	answer.Table = ca_js.Table
-	answer.Token = MakeRandomStr(128)
+
+	ca_js.Username = answer.Username
+	ca_js.Password = answer.Password
+	answer.Token,_ = createToken(ca_js)
 	_ ,err = account_db.Exec("Insert into Account_table(username, usertype,password,money,table_id,TOKEN) values (?,2,?,0,?,?)",answer.Username,fmt.Sprintf("%x", sha256.Sum256([]byte(answer.Password))),answer.Table,answer.Token)
 	if err != nil{
 		fmt.Println(err)
@@ -254,7 +273,7 @@ func User_Login(w http.ResponseWriter, r *http.Request){
 		ans.Username = login_user.Username
 		ans.Password = login_user.Password
 		ans.Table = login_user.Table
-		ans.Token = MakeRandomStr(128)
+		ans.Token, _ = createToken(login_user)
 		ans.Result = "success"
 		_ ,err := account_db.Exec("UPDATE Account_table SET TOKEN = ?,table_id = ? WHERE username = ? AND password = ?",
 				 ans.Token, ans.Table,ans.Username, password)
@@ -327,6 +346,18 @@ func GET_USER_MONEY(w http.ResponseWriter, r *http.Request){
 	})
 }
 
+func get_session_id(user *user_auth)(int, error){
+	query := `
+		select id from session_tokens
+		where TOKEN = ? AND username = ? AND table_id = ?
+	`
+	var id int
+	if err := account_db.QueryRow(query, user.Token, user.Username, user.Table).Scan(&id); err != nil{
+		return -1, err
+	}
+	return id , nil
+}
+
 //ユーザーの現在金額更新用のプログラム
 //社長、ここのことで合ってる？
 func UPDATE_USER_MONEY(w http.ResponseWriter, r *http.Request){
@@ -335,7 +366,24 @@ func UPDATE_USER_MONEY(w http.ResponseWriter, r *http.Request){
 		return
 	}
 	GET_SET_MONEY(w,r,func (user * user_auth)(user_result){
-		query := "update Account_table set money = ?  WHERE username = ? AND password = ? AND TOKEN = ?"
+		query := `
+			select money from Account_table WHERE username = ? AND TOKEN = ?
+		`
+		now := 0
+		if err := account_db.QueryRow(query, user.Username,user.Token).Scan(&now); err != nil{
+			error_print("クリエエラー(UPDATE_USER_MONEY):%v",err)
+			return Message("Error","クエリエラー１",user)
+		}
+		
+		query = `
+			Insert Into slot_result_table(time, money, fluctuation, type, session_id, user, table_id)
+			values(?,?,?,?,?,?,?)
+		`
+		sessionid , _ := get_session_id(user)
+		if _, err := account_db.Exec(query, time.Now().Format("2006-01-02 15:04:05"), user.Money, user.Money - now, 1, sessionid, user.Username,user.Table); err != nil{
+			return Message("Error", "クリエエラー２",user)
+		}
+		query = "update Account_table set money = ?  WHERE username = ? AND password = ? AND TOKEN = ?"
 		_ ,err := account_db.Exec(query, user.Money ,user.Username, fmt.Sprintf("%x",sha256.Sum256([]byte(user.Password))), user.Token)
 		if err != nil {
 			return Message("Error", "クリエでエラーが発生しました",user)
@@ -344,7 +392,3 @@ func UPDATE_USER_MONEY(w http.ResponseWriter, r *http.Request){
 	})
 }
 
-
-func update_user_money2(w http.ResponseWriter, r *http.Request){
-	
-}

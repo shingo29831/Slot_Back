@@ -3,18 +3,17 @@ services:
   go-app:
     build: .
     container_name: go-app
-    volumes:
-      - .:/app
     depends_on:
       - mysql
     ports:
-      - "8080:8080"
+      - "8443:8443"
     networks:
       - app-network
 
   mysql:
     image: mysql:8.0
     container_name: mysql
+    command: --sql-mode="ONLY_FULL_GROUP_BY,NO_ZERO_IN_DATE"
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: db1
