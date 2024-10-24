@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"html/template"
 
 	"github.com/gorilla/sessions"
 )
@@ -22,7 +23,13 @@ type pay_struct struct{
 	WithdrawalAmoun json.Number `json:"withdrawalAmoun"`
 }
 
-func totals_html(w http.ResponseWriter, r *http.Request){
+type PageData struct{
+	Title string
+	Body  template.HTML 
+	Style template.CSS
+}
+
+func admins(w http.ResponseWriter,r *http.Request, pass string, title string, style... string){
 	session, _ := store.Get(r, "auth-session")
 
 	// 認証されていない場合、ログインページにリダイレクト
@@ -31,7 +38,9 @@ func totals_html(w http.ResponseWriter, r *http.Request){
 		return
 	}
 	
-	file, err := os.Open("./web/total.html")
+	
+	tmpl := template.Must(template.ParseFiles("./web/admin.html"))
+	file, err := os.Open(pass)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -43,8 +52,23 @@ func totals_html(w http.ResponseWriter, r *http.Request){
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	w.Write(buf)
+	if len(style) > 0{
+		tmpl.Execute(w, PageData{
+			Title: title,
+			Body: template.HTML(buf),
+			Style: template.CSS(style[0]),
+		})
+	}else{
+
+		tmpl.Execute(w, PageData{
+			Title: title,
+			Body: template.HTML(buf),
+		})
+	}
+}
+
+func totals_html(w http.ResponseWriter, r *http.Request){	
+	admins(w,r,"./web/total.html","total")
 }
 
 func loginPage(w http.ResponseWriter, r *http.Request){
@@ -87,57 +111,11 @@ func loginPage(w http.ResponseWriter, r *http.Request){
 }
 
 func pay_root(w http.ResponseWriter, r *http.Request){
-	if r.Method != http.MethodGet {
-		http.Error(w,"権限がありません", http.StatusForbidden)
-		return
-	}
-	session, _ := store.Get(r, "auth-session")
-
-	// 認証されていない場合、ログインページにリダイレクト
-	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-	
-	file, err := os.Open("./web/pay_root.html")
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	defer file.Close()
-
-	buf, err := io.ReadAll(file)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	w.Write(buf)
+	admins(w,r,"./web/pay_root.html","入出金処理")
 }
 
 func dashboardPage(w http.ResponseWriter, r *http.Request) {
-	// セッションを取得
-	session, _ := store.Get(r, "auth-session")
-
-	// 認証されていない場合、ログインページにリダイレクト
-	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-	file, err := os.Open("./web/dashboard.html")
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	defer file.Close()
-
-	buf, err := io.ReadAll(file)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	w.Write(buf)
+	admins(w,r,"./web/dashboard.html","dashboard")
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
@@ -228,28 +206,5 @@ func submit_transaction(w http.ResponseWriter, r *http.Request){
 }
 
 func show_probability(w http.ResponseWriter, r *http.Request){
-	
-	// セッションを取得
-	session, _ := store.Get(r, "auth-session")
-
-	// 認証されていない場合、ログインページにリダイレクト
-	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-	file, err := os.Open("./web/table_probability.html")
-	if err != nil {
-		http.Error(w, "InternalServerError", http.StatusInternalServerError)
-		error_print("table_probabilityエラー:%v", w)
-		return
-	}
-	buf, err := io.ReadAll(file)
-	if err != nil {
-		http.Error(w, "InternalServerError", http.StatusInternalServerError)
-		error_print("table_probabilityエラー:%v", w)
-		return
-	}
-	w.Header().Set("Content-type", "text/html")
-	w.WriteHeader(200)
-	w.Write(buf)
+	admins(w,r,"./web/table_probability.html","確率管理")
 }

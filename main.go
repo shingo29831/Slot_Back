@@ -110,6 +110,9 @@ func main() {
     http.HandleFunc("/update-probability",update_probability)
     http.HandleFunc("/Gettables", GetTables)
     http.HandleFunc("/tables",show_probability)
+    http.HandleFunc("/",func (w http.ResponseWriter, r *http.Request)  {
+        http.Redirect(w,r, "/create_User",http.StatusMovedPermanently);
+    })
     //適当に作った登録完了フォーム（流石に適当がすぎるので、後々治す予定です)<-過去の自分　むりかも
     http.HandleFunc("/Create-success",func (w http.ResponseWriter, r *http.Request)  {
         fmt.Fprintf(w,"登録が完了しました♡")
