@@ -154,7 +154,7 @@ func create_User_Handle(w http.ResponseWriter, r *http.Request){
 	var create_js user_auth
 	err := json.NewDecoder(r.Body).Decode(&create_js)
 	if err != nil{
-		http.Error(w, "jsonの形が異なるか、送信されていません",http.StatusOK)
+		http.Error(w, "Bad Request",http.StatusBadRequest)
 		error_print("jsonえらー")
 		return
 	}

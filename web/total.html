@@ -1,68 +1,47 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>total</title>
-    <link rel="stylesheet" href="styles_css">
-</head>
-<body>
-    <div class="navbar">
-        <a href="/dashboard">Dashboard</a>
-        <a href="/transactions">入出金機能</a>
-        <a href="/Logout_req">ログアウト管理</a>
-        <a href="/tables">確率管理</a>
-        <a href="/totals">集計</a>
-        <a href="/logout" class="logout">ログアウト</a>
-    </div>
-    <h1>売上</h1>
-    
-    <table id="data-table">
-        <thead>
-            <tr>
-                <th>session_id</th>
-                <th>売上</th>
-                <th>最終残高</th>
-            </tr>
-        </thead>
-        <tbody id="tables">
-            <!-- データはここに追加されます -->
-        </tbody>
-    <script>
-        const tr = 'tr'
-        const th = 'th'
-        const td = 'td'
-        document.addEventListener('DOMContentLoaded',init)
-        async function init(){
-            fetch('/api/totals')
-            .then(responce => responce.json())
-            .then(data=>{
-                console.log(data);
-                const table = document.getElementById('tables');
-                
-                data.forEach(row => {
-                    const tr = document.createElement('tr');
+<table id="data-table">
+    <thead>
+        <tr>
+            <th>session_id</th>
+            <th>売上</th>
+            <th>最終残高</th>
+        </tr>
+    </thead>
+    <tbody id="tables">
+        <!-- データはここに追加されます -->
+    </tbody>
+<script>
+    const tr = 'tr'
+    const th = 'th'
+    const td = 'td'
+    document.addEventListener('DOMContentLoaded',init)
+    async function init(){
+        fetch('/api/totals')
+        .then(responce => responce.json())
+        .then(data=>{
+            console.log(data);
+            const table = document.getElementById('tables');
+            
+            data.forEach(row => {
+                const tr = document.createElement('tr');
 
-                    // 各カラムのデータをセルに追加
-                    const idCell = document.createElement('td');
-                    idCell.textContent = row.session_id;
-                    tr.appendChild(idCell);
+                // 各カラムのデータをセルに追加
+                const idCell = document.createElement('td');
+                idCell.textContent = row.session_id;
+                tr.appendChild(idCell);
 
-                    const nameCell = document.createElement('td');
-                    nameCell.textContent = row.seles;
-                    tr.appendChild(nameCell);
+                const nameCell = document.createElement('td');
+                nameCell.textContent = row.seles;
+                tr.appendChild(nameCell);
 
-                    const ageCell = document.createElement('td');
-                    ageCell.textContent = row.last_amount;
-                    tr.appendChild(ageCell);
+                const ageCell = document.createElement('td');
+                ageCell.textContent = row.last_amount;
+                tr.appendChild(ageCell);
 
-                    table.appendChild(tr);
-                });
-            })
-            .catch(error => {
-                console.error('Error fetching data:', error);
+                table.appendChild(tr);
             });
-        }
-    </script>
-</body>
-</html>
+        })
+        .catch(error => {
+            console.error('Error fetching data:', error);
+        });
+    }
+</script>
