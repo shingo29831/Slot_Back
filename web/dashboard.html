@@ -25,6 +25,9 @@
         <label for="end-date">終了日:</label>
         <input type="date" id="end-date">
 
+        <label for="page-number">ページ番号:</label>
+        <input type="number" id="page-number" value="1" min="1">
+
         <button onclick="applyFilters()">フィルタを適用</button>
     </div>
 
@@ -44,6 +47,10 @@
                 <!-- JavaScriptで動的にログデータをここに挿入 -->
             </tbody>
         </table>
+        <div class="pagination">
+            <button id="prev-page" onclick="prevPage()">前へ</button>
+            <button id="next-page" onclick="nextPage()">次へ</button>
+        </div>
     </div>
 </div>
 <!--めも、だいぶ重くなるから、100件程度で、打ち切るのも必要かもしれん-->
@@ -62,8 +69,8 @@
             if (!response.ok) {
                 throw new Error('データの取得に失敗しました');
             }
-            const logs = await response.json();
-            updateLogTable(logs); // ログを表示
+            const resp = await response.json();
+            updateLogTable(resp); // ログを表示
         } catch (error) {
             console.error(error);
         }
@@ -78,11 +85,11 @@
         default :return "????"
     }
     }
-    function updateLogTable(logs) {
+    function updateLogTable(resp) {
     const logTable = document.getElementById('log-table-body');
     logTable.innerHTML = ''; // テーブルをクリア
     
-    logs.forEach(log => {
+    resp.forEach(log => {
         const row = document.createElement('tr');
         // 重要度の色分け
         let levelColor;
@@ -112,14 +119,31 @@
         const level = document.getElementById('level').value;
         const startDate = document.getElementById('start-date').value;
         const endDate = document.getElementById('end-date').value;
+        const pageNumber = parseInt(document.getElementById('page-number').value);
+
 
         const condition = {
             location: tableId ? tableId : null, // TableIDの条件
             level: level === 'all' ? null : parseInt(level), // 重要度
             startTime: startDate ? new Date(startDate).toISOString() : null, // 開始日
-            endTime: endDate ? new Date(endDate).toISOString() : null // 終了日
+            endTime: endDate ? new Date(endDate).toISOString() : null, // 終了日
+            offset: pageNumber,
         };
 
         fetchLogsByCondition(condition);
+    }
+
+    function prevPage() {
+        let pageNumber = parseInt(document.getElementById('page-number').value);
+        if (pageNumber > 1) {
+            document.getElementById('page-number').value = pageNumber - 1;
+            applyFilters();
+        }
+    }
+
+    function nextPage() {
+        let pageNumber = parseInt(document.getElementById('page-number').value);
+        document.getElementById('page-number').value = pageNumber + 1;
+        applyFilters();
     }
 </script>

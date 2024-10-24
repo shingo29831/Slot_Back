@@ -117,6 +117,14 @@ func pay_root(w http.ResponseWriter, r *http.Request){
 func dashboardPage(w http.ResponseWriter, r *http.Request) {
 	admins(w,r,"./web/dashboard.html","dashboard")
 }
+func getJsonAuth(r * http.Request)(bool){
+	session, _ := store.Get(r, "auth-session")
+	// 認証されていない場合、ログインページにリダイレクト
+	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+		return false
+	}
+	return true
+}
 
 func logout(w http.ResponseWriter, r *http.Request) {
 	// セッションを取得
@@ -207,4 +215,12 @@ func submit_transaction(w http.ResponseWriter, r *http.Request){
 
 func show_probability(w http.ResponseWriter, r *http.Request){
 	admins(w,r,"./web/table_probability.html","確率管理")
+}
+func show_users(w http.ResponseWriter, r *http.Request){
+	if getJsonAuth(r) {
+		http.Error(w, "Bad Request", 400)
+		error_print("wtf")
+		return
+	}
+	
 }
