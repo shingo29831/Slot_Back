@@ -31,8 +31,7 @@ create table if not exists table_table(
     probability Integer,
     table_hash varchar(256)
 );
-Insert Into table_table(table_id, probability, table_hash)values('table_120', 1, '21382817893728');
-
+Insert Into table_table(table_id, probability, table_hash)values('table_120', 1, '21382800000aasssbb');
 
 create table if not exists session_tokens(
     time TIMESTAMP,
@@ -43,6 +42,11 @@ create table if not exists session_tokens(
     FOREIGN KEY (table_id) REFERENCES table_table(table_id)
 );
 
+create VIEW user_last_login (username, table_id, time)
+AS
+select username, table_id, time from session_tokens as t1
+where t1.id = (select MAX(t2.id) from session_tokens as t2 where t1.username = t2.username)
+;
 create table if not exists slot_result_table(
     time TIMESTAMP,
     money Integer,

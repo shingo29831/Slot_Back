@@ -3,11 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"os"
 	"time"
-	"html/template"
 
 	"github.com/gorilla/sessions"
 )
@@ -216,11 +216,55 @@ func submit_transaction(w http.ResponseWriter, r *http.Request){
 func show_probability(w http.ResponseWriter, r *http.Request){
 	admins(w,r,"./web/table_probability.html","確率管理")
 }
+
+type user struct{
+	Username string 	`json:"username"`
+	Usertype int		`json:"usertype"`
+	Table_id string 	`json:"table_id"`
+	Time    time.Time	`json:"time"`
+}
+func users(w http.ResponseWriter, r *http.Request){
+	admins(w,r,"./web/users.html","ユーザー一覧")
+}
 func show_users(w http.ResponseWriter, r *http.Request){
-	if getJsonAuth(r) {
+	if !getJsonAuth(r) {
 		http.Error(w, "Bad Request", 400)
 		error_print("wtf")
 		return
 	}
-	
+	query :=`
+		select act.username, act.usertype, COALESCE(ull.table_id,""),COALESCE( ull.time, '1970-01-01 00:00:00') 
+			from Account_table act 
+			left join user_last_login  ull
+			on act.username = ull.username
+			where 1 = 1
+	`
+	var ans []user
+	rows, err := account_db.Query(query)
+	if err != nil {
+		http.Error(w,"InternalServerError",http.StatusInternalServerError)
+		error_print("クエリエラー%v",err)
+		return
+	}
+	for rows.Next() {
+		var tmp user
+		var timetmp string 
+		if err := rows.Scan(&tmp.Username,&tmp.Usertype, &tmp.Table_id, &timetmp); err != nil{
+			http.Error(w,"InternalServerError",http.StatusInternalServerError)
+			error_print("データ取得エラー%v",err)
+			return
+		}
+		time, err := time.Parse("2006-01-02 15:04:05",timetmp)
+		if err != nil {
+			http.Error(w, "時間のパースに失敗しました", http.StatusInternalServerError)
+    		error_print("パースエラー%v",err)
+			return
+        }
+		tmp.Time = time
+		ans = append(ans, tmp)
+	}
+	if err := json.NewEncoder(w).Encode(ans); err != nil {
+        http.Error(w, "InternalServerError", http.StatusInternalServerError)
+		error_print("JSONエンコードに失敗しました")
+	}
 }

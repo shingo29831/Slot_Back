@@ -1,0 +1,51 @@
+<div id="container">
+<h1>ユーザー一覧</h1>
+<table>
+    <thead>
+        <tr>
+            <th>ユーザー名</th>
+            <th>ユーザータイプ</th>
+            <th>最終ログインテーブル</th>
+            <th>最終ログイン時刻</th>
+        </tr>
+    </thead>
+    <tbody id="logout-requests">
+        <!-- リクエストがここに挿入される -->
+    </tbody>
+</table>    
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded",()=>{
+        fetch("/api/show_users")
+        .then(resp => resp.json())
+        .then(json => {
+            const tbody = document.getElementById("logout-requests");
+            json.forEach(element => {
+                const row = document.createElement('tr');
+                const username = document.createElement('td');
+                username.textContent = element.username;
+                row.appendChild(username);
+                const usertype = document.createElement('td');
+                usertype.textContent = element.usertype;
+                row.appendChild(usertype);
+                    
+                const tableId = document.createElement('td');
+                tableId.textContent =element.table_id;
+                row.appendChild(tableId)
+                const time = document.createElement('td');
+                if(Date.parse(element.time) == Date.parse('1970-01-01T00:00:00Z')){
+                    //
+                }else{
+                    time.textContent =element.time;
+                }
+                
+                row.appendChild(time)
+                tbody.appendChild(row);
+            });
+        }).catch(err =>{
+            console.error(err)
+        })
+    })
+
+</script>

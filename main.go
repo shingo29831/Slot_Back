@@ -84,6 +84,8 @@ func main() {
     init_log_DB()
     Logout_user_Array = *initArray()
     mux := http.NewServeMux()
+    mux.HandleFunc("/users",users)
+    mux.HandleFunc("/api/show_users",show_users)
     mux.HandleFunc("/totals",totals_html)
     mux.HandleFunc("/api/totals",totals)
     mux.HandleFunc("/api/logout_requests", logout_requests)
@@ -118,6 +120,8 @@ func main() {
     mux.HandleFunc("/Create-success",func (w http.ResponseWriter, r *http.Request)  {
         fmt.Fprintf(w,"登録が完了しました♡")
     })
+
+    
     fmt.Println("Server is running on port 8443...")
     err := http.ListenAndServeTLS(":8443", "server.crt", "server.key", mux)
     if err != nil {
