@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"os"
@@ -22,7 +23,13 @@ type pay_struct struct{
 	WithdrawalAmoun json.Number `json:"withdrawalAmoun"`
 }
 
-func totals_html(w http.ResponseWriter, r *http.Request){
+type PageData struct{
+	Title string
+	Body  template.HTML 
+	Style template.CSS
+}
+
+func admins(w http.ResponseWriter,r *http.Request, pass string, title string, style... string){
 	session, _ := store.Get(r, "auth-session")
 
 	// 認証されていない場合、ログインページにリダイレクト
@@ -31,7 +38,9 @@ func totals_html(w http.ResponseWriter, r *http.Request){
 		return
 	}
 	
-	file, err := os.Open("./web/total.html")
+	
+	tmpl := template.Must(template.ParseFiles("./web/admin.html"))
+	file, err := os.Open(pass)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -43,8 +52,23 @@ func totals_html(w http.ResponseWriter, r *http.Request){
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	w.Write(buf)
+	if len(style) > 0{
+		tmpl.Execute(w, PageData{
+			Title: title,
+			Body: template.HTML(buf),
+			Style: template.CSS(style[0]),
+		})
+	}else{
+
+		tmpl.Execute(w, PageData{
+			Title: title,
+			Body: template.HTML(buf),
+		})
+	}
+}
+
+func totals_html(w http.ResponseWriter, r *http.Request){	
+	admins(w,r,"./web/total.html","total")
 }
 
 func loginPage(w http.ResponseWriter, r *http.Request){
@@ -87,57 +111,19 @@ func loginPage(w http.ResponseWriter, r *http.Request){
 }
 
 func pay_root(w http.ResponseWriter, r *http.Request){
-	if r.Method != http.MethodGet {
-		http.Error(w,"権限がありません", http.StatusForbidden)
-		return
-	}
-	session, _ := store.Get(r, "auth-session")
-
-	// 認証されていない場合、ログインページにリダイレクト
-	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-	
-	file, err := os.Open("./web/pay_root.html")
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	defer file.Close()
-
-	buf, err := io.ReadAll(file)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	w.Write(buf)
+	admins(w,r,"./web/pay_root.html","入出金処理")
 }
 
 func dashboardPage(w http.ResponseWriter, r *http.Request) {
-	// セッションを取得
+	admins(w,r,"./web/dashboard.html","dashboard")
+}
+func getJsonAuth(r * http.Request)(bool){
 	session, _ := store.Get(r, "auth-session")
-
 	// 認証されていない場合、ログインページにリダイレクト
 	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
+		return false
 	}
-	file, err := os.Open("./web/dashboard.html")
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	defer file.Close()
-
-	buf, err := io.ReadAll(file)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	w.Write(buf)
+	return true
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
@@ -228,28 +214,57 @@ func submit_transaction(w http.ResponseWriter, r *http.Request){
 }
 
 func show_probability(w http.ResponseWriter, r *http.Request){
-	
-	// セッションを取得
-	session, _ := store.Get(r, "auth-session")
+	admins(w,r,"./web/table_probability.html","確率管理")
+}
 
-	// 認証されていない場合、ログインページにリダイレクト
-	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+type user struct{
+	Username string 	`json:"username"`
+	Usertype int		`json:"usertype"`
+	Table_id string 	`json:"table_id"`
+	Time    time.Time	`json:"time"`
+}
+func users(w http.ResponseWriter, r *http.Request){
+	admins(w,r,"./web/users.html","ユーザー一覧")
+}
+func show_users(w http.ResponseWriter, r *http.Request){
+	if !getJsonAuth(r) {
+		http.Error(w, "Bad Request", 400)
+		error_print("wtf")
 		return
 	}
-	file, err := os.Open("./web/table_probability.html")
+	query :=`
+		select act.username, act.usertype, COALESCE(ull.table_id,""),COALESCE( ull.time, '1970-01-01 00:00:00') 
+			from Account_table act 
+			left join user_last_login  ull
+			on act.username = ull.username
+			where 1 = 1
+	`
+	var ans []user
+	rows, err := account_db.Query(query)
 	if err != nil {
-		http.Error(w, "InternalServerError", http.StatusInternalServerError)
-		error_print("table_probabilityエラー:%v", w)
+		http.Error(w,"InternalServerError",http.StatusInternalServerError)
+		error_print("クエリエラー%v",err)
 		return
 	}
-	buf, err := io.ReadAll(file)
-	if err != nil {
-		http.Error(w, "InternalServerError", http.StatusInternalServerError)
-		error_print("table_probabilityエラー:%v", w)
-		return
+	for rows.Next() {
+		var tmp user
+		var timetmp string 
+		if err := rows.Scan(&tmp.Username,&tmp.Usertype, &tmp.Table_id, &timetmp); err != nil{
+			http.Error(w,"InternalServerError",http.StatusInternalServerError)
+			error_print("データ取得エラー%v",err)
+			return
+		}
+		time, err := time.Parse("2006-01-02 15:04:05",timetmp)
+		if err != nil {
+			http.Error(w, "時間のパースに失敗しました", http.StatusInternalServerError)
+    		error_print("パースエラー%v",err)
+			return
+        }
+		tmp.Time = time
+		ans = append(ans, tmp)
 	}
-	w.Header().Set("Content-type", "text/html")
-	w.WriteHeader(200)
-	w.Write(buf)
+	if err := json.NewEncoder(w).Encode(ans); err != nil {
+        http.Error(w, "InternalServerError", http.StatusInternalServerError)
+		error_print("JSONエンコードに失敗しました")
+	}
 }

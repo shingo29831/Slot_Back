@@ -1,111 +1,93 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="styles_css">
-</head>
-<body>
-    <div class="navbar">
-        <a href="/dashboard">Dashboard</a>
-        <a href="/transactions">入出金機能</a>
-        <a href="/Logout_req">ログアウト管理</a>
-        <a href="/tables">確率管理</a>
-        <a href="/totals">集計</a>
-        <a href="/logout" class="logout">ログアウト</a>
-    </div>
-    <div class="container">
-        <h1>テーブル一覧</h1>
-        <table>
-            <thead>
-                <tr>
-                    <th>テーブルID</th>
-                    <th>確率設定</th>
-                    <th>変更</th>
-                </tr>
-            </thead>
-            <tbody id="tables">
-            </tbody>
-        </table>
 
-    </div>
-    <script>
-        document.addEventListener('DOMContentLoaded',fetchTables)
-        async function fetchTables() {
-            try {
-                //ここセキュリティガバガバガバナンス
-                const response = await fetch('/Gettables');
-                if(!response.ok){
-                    throw new Error('データの取得に失敗しました')
-                }
-                const log = await response.json()
-                console.log(log)
-                updateTable(log)
-            }catch (error){
-                console.error(error)
+<div class="container">
+    <h1>テーブル一覧</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>テーブルID</th>
+                <th>確率設定</th>
+                <th>変更</th>
+            </tr>
+        </thead>
+        <tbody id="tables">
+        </tbody>
+    </table>
+
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded',fetchTables)
+    async function fetchTables() {
+        try {
+            //ここセキュリティガバガバガバナンス
+            const response = await fetch('/Gettables');
+            if(!response.ok){
+                throw new Error('データの取得に失敗しました')
             }
+            const log = await response.json()
+            console.log(log)
+            updateTable(log)
+        }catch (error){
+            console.error(error)
         }
-        function updateTable(logs){
-            const table = document.getElementById('tables')
-            table.innerHTML = ''
+    }
+    function updateTable(logs){
+        const table = document.getElementById('tables')
+        table.innerHTML = ''
 
-            logs.forEach(element => {
-                const row  = document.createElement('tr');
+        logs.forEach(element => {
+            const row  = document.createElement('tr');
 
-                const tableIdCell = document.createElement('td')
-                tableIdCell.textContent = element.table_id
-                row.appendChild(tableIdCell)
+            const tableIdCell = document.createElement('td')
+            tableIdCell.textContent = element.table_id
+            row.appendChild(tableIdCell)
 
-                const probabilityCell = document.createElement('td')
-                probabilityCell.textContent = element.probability
-                row.appendChild(probabilityCell)
-                
-                const actionCell = document.createElement('td')
-                const textCell = document.createElement('input')
-                textCell.type = 'number'
-                textCell.addEventListener('keydown',function(event){
-                    if(event.key == 'Enter'){
-                        const newProbability = textCell.value;
-                        const tableId = element.tableId;
-                        const tableHash = element.table_hash
-                        try{
-                            fetch('/update-probability',{
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                    //ここに認証置かないと行けないわ☆
-                                    //ただ、どうやろうか　わからん
-                                },
-                                body: JSON.stringify({
-                                    key: "aaa",
-                                    table_Id: tableId,
-                                    probability: newProbability,
-                                    table_hash: tableHash
-                                })
+            const probabilityCell = document.createElement('td')
+            probabilityCell.textContent = element.probability
+            row.appendChild(probabilityCell)
+            
+            const actionCell = document.createElement('td')
+            const textCell = document.createElement('input')
+            textCell.type = 'number'
+            textCell.addEventListener('keydown',function(event){
+                if(event.key == 'Enter'){
+                    const newProbability = textCell.value;
+                    const tableId = element.tableId;
+                    const tableHash = element.table_hash
+                    try{
+                        fetch('/update-probability',{
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                                //ここに認証置かないと行けないわ☆
+                                //ただ、どうやろうか　わからん
+                            },
+                            body: JSON.stringify({
+                                key: "aaa",
+                                table_Id: tableId,
+                                probability: newProbability,
+                                table_hash: tableHash
                             })
-                            .then(resp=>{
-                                if(!resp.ok){
-                                    throw new Error("エラー")
-                                }
-                                alert("更新完了しました")
-                                location.reload()
-                            })
-                            .catch(err=>{
-                                alert("エラー:"+err)
-                                location.reload()
-                            })
-                        }catch (error) {
-                            alert("エラー:"+error)
-                            console.error(error)
-                        }
-                    }  
-                })
-                actionCell.appendChild(textCell)
-                row.appendChild(actionCell)
-                table.appendChild(row)
-            });
-        }
-    </script>
-</body>
-</html>
+                        })
+                        .then(resp=>{
+                            if(!resp.ok){
+                                throw new Error("エラー")
+                            }
+                            alert("更新完了しました")
+                            location.reload()
+                        })
+                        .catch(err=>{
+                            alert("エラー:"+err)
+                            location.reload()
+                        })
+                    }catch (error) {
+                        alert("エラー:"+error)
+                        console.error(error)
+                    }
+                }  
+            })
+            actionCell.appendChild(textCell)
+            row.appendChild(actionCell)
+            table.appendChild(row)
+        });
+    }
+</script>

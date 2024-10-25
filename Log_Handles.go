@@ -58,7 +58,7 @@ func init_log_DB(){
 //複数ログ用ハンドル,主にこいつを利用してほしい
 
 func Log_accsess(w http.ResponseWriter, r *http.Request){
-	if r.Method != http.MethodPost {
+	if r.Method != http.MethodPost || !getJsonAuth(r) {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
@@ -67,22 +67,28 @@ func Log_accsess(w http.ResponseWriter, r *http.Request){
 		Level     *int      `json:"level"`
 		StartTime time.Time `json:"startTime"`
 		EndTime   time.Time `json:"endTime"`
+		Offset    *int 		`json:"offset"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&filterCondition); err != nil{
 		http.Error(w, "Bad request", 400)
-		fmt.Printf("%v\n",err)
+		error_print("JSON_ERROR%v",err)
 		return
 	}
 	query := `
 		SELECT time, level, location, message FROM Log_table WHERE 1=1 
 	`
+
+	
+		var logs []Log 
+	
 	// Locationのフィルタリング
 	if filterCondition.Location != ""{
+		//ここSQLインジェクション()
 		query += fmt.Sprintf(" AND location = '%s'", filterCondition.Location)
 	}
 	// 重要度のフィルタリング
 	if filterCondition.Level != nil  {
-		query += fmt.Sprintf(" AND level = %d", filterCondition.Level)
+		query += fmt.Sprintf(" AND level = %d", *filterCondition.Level)
 	}
 	// 開始日と終了日のフィルタリング
 	if !filterCondition.StartTime.IsZero() {
@@ -91,16 +97,19 @@ func Log_accsess(w http.ResponseWriter, r *http.Request){
 	if !filterCondition.EndTime.IsZero()  {
 		query += fmt.Sprintf(" AND time <= '%s'",filterCondition.EndTime.String())
 	}
-	query += " ORDER BY time DESC LIMIT 100"
+	query += " ORDER BY time DESC LIMIT 20"
+	if filterCondition.Offset != nil { 
+		query += fmt.Sprintf(" OFFSET %d", ((*filterCondition.Offset) - 1)*20)
+	}
+	//log_print(query)
 	rows, err := log_db.Query(query)
     if err != nil {
         http.Error(w, "データベースからのデータ取得に失敗しました : "+ err.Error(), http.StatusInternalServerError)
+		error_print("くりえエラー0")
         return
     }
     defer rows.Close()
-
-    var logs []Log
-
+	
     // クエリの結果を読み込んでログ構造体にマッピング
     for rows.Next() {
         var logEntry Log
@@ -108,12 +117,14 @@ func Log_accsess(w http.ResponseWriter, r *http.Request){
 
         if err := rows.Scan(&logTime, &logEntry.Level, &logEntry.Location, &logEntry.Message); err != nil {
             http.Error(w, "データの読み込みに失敗しました"+ err.Error(), http.StatusInternalServerError)
+			error_print("読み込みエラー%v",err)
             return
         }
 		parsedTime, err := time.Parse("2006-01-02 15:04:05", logTime)
 		if err != nil {
 			http.Error(w, "時間のパースに失敗しました", http.StatusInternalServerError)
-    		return
+    		error_print("パースエラー%v",err)
+			return
         }
         // 時刻をRFC3339形式にフォーマット
         logEntry.Time = parsedTime.Format(time.RFC3339)

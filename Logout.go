@@ -16,26 +16,7 @@ type Logout_user struct {
 var Logout_user_Array Array
 
 func Logout_page(w http.ResponseWriter, r *http.Request){
-	session, _ := store.Get(r, "auth-session")
-
-	// 認証されていない場合、ログインページにリダイレクト
-	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-	file, err := os.Open("./web/Logout_req.html")
-	if err != nil {
-		http.Error(w, "InternalServerError", http.StatusInternalServerError)
-		return
-	}
-	defer file.Close()
-	buf, err := io.ReadAll(file)
-	if err != nil {
-		http.Error(w, "InternalServerError", http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	w.Write(buf)
+	admins(w,r,"./web/Logout_req.html","ログアウト管理")
 }
 
 func style_css(w http.ResponseWriter, r *http.Request){

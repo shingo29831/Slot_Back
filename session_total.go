@@ -68,7 +68,7 @@ func totals(w http.ResponseWriter, r *http.Request){
 		return
 	}
 	buf, err := total_Query()
-	log_print("%s",string(buf))
+	//log_print("%s",string(buf))
 	if err != nil {
 		http.Error(w, "Failed to fetch data", http.StatusInternalServerError)
 		error_print("クリエエラー%v",err)
