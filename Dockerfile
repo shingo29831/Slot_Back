@@ -42,4 +42,4 @@ COPY . .
 #RUN go build -o myapp .
 
 # コンテナ起動時に実行されるコマンド
-CMD ["/app/myapp"]
+CMD ["/app/main"]
