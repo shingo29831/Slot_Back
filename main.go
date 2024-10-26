@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"html/template"
 	"io"
 	"log"
 	"net/http"
@@ -79,7 +80,20 @@ func fileaccsess(w http.ResponseWriter, r *http.Request) {
     w.Write(buf)
 }
 
+func redirectToHTTPS(w http.ResponseWriter, r *http.Request) {
+    httpsURL := "https://" + r.Host + r.URL.String()
+    http.Redirect(w, r, httpsURL, http.StatusMovedPermanently)
+}
+
 func main() {
+    go func() {
+        httpMux := http.NewServeMux()
+        httpMux.HandleFunc("/", redirectToHTTPS)
+        fmt.Println("Starting HTTP server on :80")
+        if err := http.ListenAndServe(":80", httpMux); err != nil {
+            log.Fatalf("HTTP server error: %v", err)
+        }
+    }()
     init_account_db()
     init_log_DB()
     Logout_user_Array = *initArray()
@@ -120,10 +134,29 @@ func main() {
     mux.HandleFunc("/Create-success",func (w http.ResponseWriter, r *http.Request)  {
         fmt.Fprintf(w,"登録が完了しました♡")
     })
+    mux.Handle("/custom404",http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        tmpl := template.Must(template.New("404エラー").Parse(`
+            <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404エラー</title>
+</head>
+<body>
+    <h1>ここにはなにもないよーん</h1>
+    <p>
+        ここにたどり着いたものは、社長に連絡するのだ…<br>
+        担当は寝ているので起こさないでね☆
+    </p>
+</body>
+</html>
+        `))
+        tmpl.Execute(w,nil)
+    }))
 
-    
-    fmt.Println("Server is running on port 8443...")
-    err := http.ListenAndServeTLS(":8443", "server.crt", "server.key", mux)
+    fmt.Println("Server is running on port 443...")
+    err := http.ListenAndServeTLS(":443", "server.crt", "server.key", mux)
     if err != nil {
         panic(err)
     }
