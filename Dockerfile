@@ -23,7 +23,7 @@ COPY *go .
 COPY ./web ./web
 
 
-RUN openssl req -new -x509 -days 365 -nodes -out server.crt -keyout server.key
+# RUN openssl req -new -x509 -days 365 -nodes -out server.crt -keyout server.key
 
 
 ENV LOG_SERVER="logsystem:logsyspassword@tcp(mysql:3306)/log_server"
