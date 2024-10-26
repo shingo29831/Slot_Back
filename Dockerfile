@@ -28,9 +28,9 @@ COPY . .
 ## RUN openssl req -new -x509 -days 365 -nodes -out server.crt -keyout server.key
 #
 #
-#ENV LOG_SERVER="logsystem:logsyspassword@tcp(mysql:3306)/log_server"
+ENV LOG_SERVER="logsystem:logsyspassword@tcp(mysql:3306)/log_server"
 #
-#ENV ACCOUNT_SERVER="account_system:xM7B)NY-eexsJm@tcp(mysql:3306)/account_server"
+ENV ACCOUNT_SERVER="account_system:xM7B)NY-eexsJm@tcp(mysql:3306)/account_server"
 #
 ## 必要な依存関係をインストール
 #
