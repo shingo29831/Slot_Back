@@ -146,19 +146,20 @@ func main() {
     init_log_DB()
     Logout_user_Array = *initArray()
     mux8443 := http.NewServeMux()
-    mux8443.HandleFunc("/users",users)
+    mux8443.HandleFunc("/Bonus_result_append",Best_result_append)
+    mux8443.HandleFunc("/users",admins("./web/users.html","ユーザー一覧"))
     mux8443.HandleFunc("/api/show_users",show_users)
-    mux8443.HandleFunc("/totals",totals_html)
+    mux8443.HandleFunc("/totals",admins("./web/total.html","total"))
     mux8443.HandleFunc("/api/totals",totals)
     mux8443.HandleFunc("/api/logout_requests", logout_requests)
     mux8443.HandleFunc("/approve-logout",approve_logout)
     mux8443.HandleFunc("/styles_css", style_css)
-    mux8443.HandleFunc("/Logout_req", Logout_page)
+    mux8443.HandleFunc("/Logout_req", admins("./web/Logout_req.html","ログアウト管理"))
     mux8443.HandleFunc("/script.js" ,fileaccsess)
-    mux8443.HandleFunc("/transactions",pay_root)
+    mux8443.HandleFunc("/transactions",admins("./web/pay_root.html","入出金処理"))
     mux8443.HandleFunc("/submit-transaction",submit_transaction)
 	mux8443.HandleFunc("/login", loginPage)
-	mux8443.HandleFunc("/dashboard", dashboardPage)
+	mux8443.HandleFunc("/dashboard", admins("./web/dashboard.html","dashboard"))
 	mux8443.HandleFunc("/logout", logout)
     mux8443.HandleFunc("/api/add_log", Log_recive)
     mux8443.HandleFunc("/api/add_log_file", Log_ALL_recive)
@@ -172,14 +173,14 @@ func main() {
     mux8443.HandleFunc("/table_probability",table_probability)
     mux8443.HandleFunc("/update-probability",update_probability)
     mux8443.HandleFunc("/Gettables", GetTables)
-    mux8443.HandleFunc("/tables",show_probability)
-
+    mux8443.HandleFunc("/tables",admins("./web/table_probability.html","確率管理"))
+    mux8443.HandleFunc("/api/result_table",result_table)    
 
     
 
     fmt.Println("Server is running on port 8443...")
     err := http.ListenAndServeTLS(":8443", "server.crt", "server.key", MiddlewareIPFilter(mux8443))
     if err != nil {
-        panic(err)
+        log.Fatal(err)
     }
 }

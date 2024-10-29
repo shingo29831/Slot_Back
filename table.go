@@ -34,6 +34,7 @@ func table_probability(w http.ResponseWriter, r *http.Request){
     `
     if r.Method == http.MethodPost{
         http.Error(w,"Bad Request",400)
+        error_print("メゾットエラー")
         return
     }
     var table table_request
