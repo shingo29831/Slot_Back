@@ -43,7 +43,7 @@ func table_probability(w http.ResponseWriter, r *http.Request){
         error_print("%v", err)
         return
     }
-    if table.Key == Authentication_Key{
+    if table.Key != Authentication_Key{
         http.Error(w,"Bad Request",http.StatusBadRequest)
         error_print("テーブル認証エラー：存在しない認証が届きました")
         return
