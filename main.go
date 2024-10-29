@@ -175,7 +175,7 @@ func main() {
     mux8443.HandleFunc("/Gettables", GetTables)
     mux8443.HandleFunc("/tables",admins("./web/table_probability.html","確率管理"))
     mux8443.HandleFunc("/api/result_table",result_table)    
-
+    mux8443.HandleFunc("/bonus_result", admins("./web/Bonus_results.html","ボーナス履歴"))
     
 
     fmt.Println("Server is running on port 8443...")
