@@ -7,6 +7,13 @@ create table if not exists Log_table(
     location varchar(30),
     message varchar(256)
 );
+
+create table if not exists Bonus_table(
+    time DATETIME,
+    location varchar(30),
+    money Integer
+);
+
 Grant All Privileges on log_server.* to 'logsystem'@'%';
 FLUSH PRIVILEGES;
 

@@ -15,9 +15,6 @@ type Logout_user struct {
 
 var Logout_user_Array Array
 
-func Logout_page(w http.ResponseWriter, r *http.Request){
-	admins(w,r,"./web/Logout_req.html","ログアウト管理")
-}
 
 func style_css(w http.ResponseWriter, r *http.Request){
 	session, _ := store.Get(r, "auth-session")

@@ -29,47 +29,46 @@ type PageData struct{
 	Style template.CSS
 }
 
-func admins(w http.ResponseWriter,r *http.Request, pass string, title string, style... string){
-	session, _ := store.Get(r, "auth-session")
+func admins( pass string, title string, style... string)(func(w http.ResponseWriter, r *http.Request)){
+	return func(w http.ResponseWriter, r *http.Request){
+			session, _ := store.Get(r, "auth-session")
 
-	// 認証されていない場合、ログインページにリダイレクト
-	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-	
-	
-	tmpl := template.Must(template.ParseFiles("./web/admin.html"))
-	file, err := os.Open(pass)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	defer file.Close()
+		// 認証されていない場合、ログインページにリダイレクト
+		if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
 
-	buf, err := io.ReadAll(file)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	if len(style) > 0{
-		tmpl.Execute(w, PageData{
-			Title: title,
-			Body: template.HTML(buf),
-			Style: template.CSS(style[0]),
-		})
-	}else{
 
-		tmpl.Execute(w, PageData{
-			Title: title,
-			Body: template.HTML(buf),
-		})
+		tmpl := template.Must(template.ParseFiles("./web/admin.html"))
+		file, err := os.Open(pass)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		defer file.Close()
+
+		buf, err := io.ReadAll(file)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		if len(style) > 0{
+			tmpl.Execute(w, PageData{
+				Title: title,
+				Body: template.HTML(buf),
+				Style: template.CSS(style[0]),
+			})
+		}else{
+
+			tmpl.Execute(w, PageData{
+				Title: title,
+				Body: template.HTML(buf),
+			})
+		}
 	}
 }
 
-func totals_html(w http.ResponseWriter, r *http.Request){	
-	admins(w,r,"./web/total.html","total")
-}
 
 func loginPage(w http.ResponseWriter, r *http.Request){
 	if r.Method == http.MethodGet {
@@ -110,13 +109,6 @@ func loginPage(w http.ResponseWriter, r *http.Request){
 	}
 }
 
-func pay_root(w http.ResponseWriter, r *http.Request){
-	admins(w,r,"./web/pay_root.html","入出金処理")
-}
-
-func dashboardPage(w http.ResponseWriter, r *http.Request) {
-	admins(w,r,"./web/dashboard.html","dashboard")
-}
 func getJsonAuth(r * http.Request)(bool){
 	session, _ := store.Get(r, "auth-session")
 	// 認証されていない場合、ログインページにリダイレクト
@@ -213,18 +205,12 @@ func submit_transaction(w http.ResponseWriter, r *http.Request){
 	}
 }
 
-func show_probability(w http.ResponseWriter, r *http.Request){
-	admins(w,r,"./web/table_probability.html","確率管理")
-}
 
 type user struct{
 	Username string 	`json:"username"`
 	Usertype int		`json:"usertype"`
 	Table_id string 	`json:"table_id"`
 	Time    time.Time	`json:"time"`
-}
-func users(w http.ResponseWriter, r *http.Request){
-	admins(w,r,"./web/users.html","ユーザー一覧")
 }
 func show_users(w http.ResponseWriter, r *http.Request){
 	if !getJsonAuth(r) {

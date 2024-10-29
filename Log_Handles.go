@@ -216,3 +216,87 @@ func server_log(level int, message string, arg... any){
 	}
 
 }
+
+
+//bonus_resultを送ってくるJSON
+type Bonus_result struct{
+	Money int `json:"money"`
+	Location string `json:"location"`
+}
+
+/**
+
+create table if not exists Bouns_table(
+    time DATETIME,
+    location varchar(30),
+    money Integer
+);
+
+*/
+func Best_result_append(w http.ResponseWriter, r *http.Request){
+	var res Bonus_result
+	if err := json.NewDecoder(r.Body).Decode(&res); err != nil{
+		http.Error(w,"Bad Request",http.StatusBadRequest);
+		error_print("JSONエラー%v",err)
+		return
+	}
+	query := `
+		INSERT INTO Bonus_table(time, location, money) values (?,?,?);
+	`
+	if _, err := log_db.Exec(query,time.Now().String(), res.Location, res.Money); err != nil{
+		http.Error(w,"InternalServerError",http.StatusInternalServerError)
+		error_print("くりえエラー%v",err)
+		return
+	}
+	var result struct{
+		Success bool 	`json:"success"`
+		Result  string 	`json:"result"`
+	}
+	result.Result = "success"
+	result.Success = true
+	w.Header().Set("Content-type","application/json")
+	w.WriteHeader(200)
+	if err := json.NewEncoder(w).Encode(result); err != nil{
+		http.Error(w, "InternalServerError",http.StatusInternalServerError)
+		error_print("JSONえらー%v",err)
+	}
+}
+
+type Bouns_ struct{
+	Time time.Time
+    Location string
+    Money *int
+}
+
+
+func result_table(w http.ResponseWriter, r *http.Request){
+	if !getJsonAuth(r) {
+		http.Error(w,"Bad Request", http.StatusBadRequest)
+		return
+	}
+	query := `
+		SELECT time, location, money from Bonus_table
+		order by money desc limit 30
+	`
+	rows, err := log_db.Query(query)
+	if err != nil {
+		http.Error(w, "InternalServerError", http.StatusInternalServerError)
+		error_print("ｸﾘｴｴｴｴｴｴｴ %v",err)
+		return
+	}
+	defer rows.Close()
+	var ans []Bouns_
+	for rows.Next() {
+		var tmp Bouns_
+		if err = rows.Scan(&tmp.Time, &tmp.Location, &tmp.Money); err != nil{
+			http.Error(w,"InternalServerError", http.StatusInternalServerError)
+			error_print("スキャンエラー☆%v", err)
+			return
+		}
+		ans = append(ans, tmp)
+	}
+	if err = json.NewEncoder(w).Encode(ans); err != nil{
+		http.Error(w, "InternalServerError",http.StatusInternalServerError)
+		error_print("jsonエラー")
+	}
+}
