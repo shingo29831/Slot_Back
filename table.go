@@ -29,7 +29,7 @@ type table_resp struct{
 
 func table_probability(w http.ResponseWriter, r *http.Request){
 	query := `
-        SELECT probability FROM table_table
+        SELECT probability FROM table_table 
         WHERE table_hash = ? 
     `
     if r.Method != http.MethodPost{
@@ -120,13 +120,15 @@ func GetTables(w http.ResponseWriter, r *http.Request){
 		return
 	}
     query := `
-        SELECT table_id,probability,table_hash FROM table_table
+        SELECT tt.table_id,tt.probability,tt.table_hash, COALESCE(at.username, 'ログインしていません') as login
+        FROM table_table as tt left outer join Account_table as at on tt.table_id = at.table_id 
     `
     var values []struct{
         Table_id string `json:"table_id"`	
         Probability int `json:"probability"`
         Table_hash string `json:"table_hash"`
-    }
+        Login       string `json:"login"`
+    }   
     rows, err := account_db.Query(query)
     if err != nil {
         http.Error(w, "InternalServerError",http.StatusInternalServerError)
@@ -140,8 +142,9 @@ func GetTables(w http.ResponseWriter, r *http.Request){
             Table_id string `json:"table_id"`	
             Probability int `json:"probability"`
             Table_hash string `json:"table_hash"`
+            Login       string `json:"login"`
         }
-        if err := rows.Scan(&tmp.Table_id,&tmp.Probability,&tmp.Table_hash);err != nil{
+        if err := rows.Scan(&tmp.Table_id,&tmp.Probability,&tmp.Table_hash,&tmp.Login);err != nil{
             http.Error(w,"InternalServerError",http.StatusInternalServerError)
             error_print("クエリエラー:%v",err)
             return

@@ -6,6 +6,7 @@
             <tr>
                 <th>テーブルID</th>
                 <th>確率設定</th>
+                <th>ログイン中</th>
                 <th>変更</th>
             </tr>
         </thead>
@@ -44,6 +45,11 @@
             const probabilityCell = document.createElement('td')
             probabilityCell.textContent = element.probability
             row.appendChild(probabilityCell)
+
+            
+            const loginsCell = document.createElement('td')
+            probabilityCell.textContent = element.login
+            row.appendChild(loginsCell)
             
             const actionCell = document.createElement('td')
             const textCell = document.createElement('input')
