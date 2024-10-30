@@ -17,7 +17,7 @@ create table if not exists table_table(
 type table_request struct{
     Key    string `json:"key"`
 	Table_id string `json:"table_id"`	
-	Probability int `json:"probability"`
+	Probability json.Number `json:"probability"`
     Table_hash string `json:"table_hash"`
 }
 type table_resp struct{
@@ -86,7 +86,7 @@ func update_probability(w http.ResponseWriter, r *http.Request){
         error_print("テーブル認証エラー：存在しない認証が届きました")
         return
     }
-    probability  := table.Probability
+    probability, _   := (table.Probability.Int64())
     if _ ,err := account_db.Exec(query, probability, table.Table_hash); err != nil{
         http.Error(w,"InternalServerError", http.StatusInternalServerError)
         error_print("クエリエラー:%v", err)
