@@ -32,7 +32,7 @@ func table_probability(w http.ResponseWriter, r *http.Request){
         SELECT probability FROM table_table
         WHERE table_hash = ? 
     `
-    if r.Method == http.MethodPost{
+    if r.Method != http.MethodPost{
         http.Error(w,"Bad Request",400)
         error_print("メゾットエラー")
         return
